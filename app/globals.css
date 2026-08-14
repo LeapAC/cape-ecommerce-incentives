@@ -1,0 +1,576 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   cape — palette
+   Two themes, one layout. `pacific` is the sun-drunk Pacific point break.
+   `riviera` is the same coastline three time zones and one century away.
+   Swap by setting data-theme on <html>.
+   ========================================================================== */
+
+/* The mark is two colours on cream: a deep navy-teal wave and an amber sun.
+   Every token below is derived from those three. Nothing else gets invented. */
+
+:root,
+[data-theme="pacific"] {
+  color-scheme: light;
+
+  /* surfaces — the cream the mark sits on */
+  --paper: #f9f2e0;
+  --paper-warm: #f1e6cd;
+  --shell: #fdf9ef;
+  --shell-sunk: #f6eeda;
+
+  /* type — the wave navy */
+  --ink: #143d55;
+  --ink-soft: #2c5c78;
+  --muted: #6f8b9c;
+  --line: #ddccae;
+  --line-strong: #bfab8b;
+
+  /* water */
+  --deep: #0a2739;
+  --sea: #144a6a;
+  --sea-mid: #1d6d8e;
+  --foam: #86cfc9;
+  --sky-high: #123f5c;
+  --sky-mid: #266980;
+  --sky-low: #eda257;
+  --sun: #efa02b;
+
+  /* accents — the sun does the work */
+  --pop: #efa02b;
+  --pop-ink: #143d55;
+  --coral: #e0603a;
+
+  --hero-ink: #f9f2e0;
+  --hero-muted: #a9c2cc;
+  --grain-opacity: 0.16;
+  --sheen: 0.5;
+}
+
+[data-theme="riviera"] {
+  color-scheme: light;
+
+  --paper: #f8f2e6;
+  --paper-warm: #f1e7d5;
+  --shell: #fdfaf4;
+  --shell-sunk: #f7f1e4;
+
+  --ink: #143050;
+  --ink-soft: #33587f;
+  --muted: #7f8fa4;
+  --line: #ded2bc;
+  --line-strong: #c2b094;
+
+  --deep: #0d2340;
+  --sea: #1c5590;
+  --sea-mid: #2e7db6;
+  --foam: #a8d0e6;
+  --sky-high: #1c4877;
+  --sky-mid: #4d84ad;
+  --sky-low: #f2c684;
+  --sun: #f2b038;
+
+  --pop: #d9542b;
+  --pop-ink: #fff3e8;
+  --coral: #c4452a;
+
+  --hero-ink: #fdf7ea;
+  --hero-muted: #c1d3e2;
+  --grain-opacity: 0.11;
+  --sheen: 0.34;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-warm: var(--paper-warm);
+  --color-shell: var(--shell);
+  --color-shell-sunk: var(--shell-sunk);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-deep: var(--deep);
+  --color-sea: var(--sea);
+  --color-sea-mid: var(--sea-mid);
+  --color-foam: var(--foam);
+  --color-sun: var(--sun);
+  --color-pop: var(--pop);
+  --color-pop-ink: var(--pop-ink);
+  --color-coral: var(--coral);
+  --color-hero-ink: var(--hero-ink);
+  --color-hero-muted: var(--hero-muted);
+
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-archivo), ui-sans-serif, sans-serif;
+
+  --ease-swell: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-drop: cubic-bezier(0.16, 0.84, 0.44, 1);
+}
+
+/* ==========================================================================
+   base
+   ========================================================================== */
+
+* {
+  border-color: var(--line);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  /* `clip`, not `hidden`: hidden would make this a scroll container, which
+     zeroes window.scrollY and breaks both the sticky header and position:sticky. */
+  overflow-x: clip;
+}
+
+body {
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-archivo), ui-sans-serif, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+::selection {
+  background: var(--pop);
+  color: var(--pop-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--sea-mid);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-variation-settings: "SOFT" 24, "WONK" 1, "opsz" 96;
+  letter-spacing: -0.022em;
+  line-height: 0.94;
+  text-wrap: balance;
+}
+
+/* ==========================================================================
+   type helpers
+   ========================================================================== */
+
+.display {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-variation-settings: "SOFT" 40, "WONK" 1, "opsz" 120;
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+}
+
+.serif {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-variation-settings: "SOFT" 20, "WONK" 0, "opsz" 32;
+}
+
+.wonk {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-style: italic;
+  font-variation-settings: "SOFT" 60, "WONK" 1, "opsz" 100;
+}
+
+.label {
+  font-family: var(--font-archivo), sans-serif;
+  font-variation-settings: "wdth" 112;
+  text-transform: uppercase;
+  letter-spacing: 0.19em;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.label-sm {
+  font-family: var(--font-archivo), sans-serif;
+  font-variation-settings: "wdth" 108;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   grain + paper texture
+   ========================================================================== */
+
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.grain-fixed {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  opacity: calc(var(--grain-opacity) * 0.62);
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* faint swell lines across the paper, like a nautical chart */
+.chart-lines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--line) 55%, transparent) 0 1px,
+    transparent 1px 88px
+  );
+}
+
+/* riviera awning stripe; pacific gets fine chart hatching instead */
+.awning {
+  background-image: repeating-linear-gradient(
+    100deg,
+    color-mix(in oklab, var(--pop) 22%, transparent) 0 14px,
+    transparent 14px 34px
+  );
+}
+
+[data-theme="pacific"] .awning {
+  background-image: repeating-linear-gradient(
+    100deg,
+    color-mix(in oklab, var(--sea-mid) 15%, transparent) 0 2px,
+    transparent 2px 13px
+  );
+}
+
+/* ==========================================================================
+   ocean motion
+   ========================================================================== */
+
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -0.7rem, 0);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes glitter {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 -220px;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 1.75rem, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.wave-layer {
+  position: absolute;
+  left: 0;
+  width: 200%;
+  animation: drift linear infinite;
+  will-change: transform;
+}
+
+.sun-disc {
+  animation: breathe 9s ease-in-out infinite;
+}
+
+.bobbing {
+  animation: bob 7s ease-in-out infinite;
+}
+
+.glitter {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--sun) 78%, transparent) 0 1px,
+    transparent 1px 5px,
+    color-mix(in oklab, var(--sun) 42%, transparent) 5px 6px,
+    transparent 6px 13px
+  );
+  animation: glitter 4.5s linear infinite;
+  -webkit-mask-image: radial-gradient(
+    58% 100% at 50% 0%,
+    rgba(0, 0, 0, 0.95) 0%,
+    rgba(0, 0, 0, 0.35) 45%,
+    transparent 82%
+  );
+  mask-image: radial-gradient(
+    58% 100% at 50% 0%,
+    rgba(0, 0, 0, 0.95) 0%,
+    rgba(0, 0, 0, 0.35) 45%,
+    transparent 82%
+  );
+}
+
+/* staggered page-load reveal */
+.rise {
+  opacity: 0;
+  animation: rise 0.9s var(--ease-swell) forwards;
+}
+
+.rise-1 { animation-delay: 0.05s; }
+.rise-2 { animation-delay: 0.15s; }
+.rise-3 { animation-delay: 0.26s; }
+.rise-4 { animation-delay: 0.38s; }
+.rise-5 { animation-delay: 0.5s; }
+.rise-6 { animation-delay: 0.62s; }
+.rise-7 { animation-delay: 0.74s; }
+
+/* scroll-triggered reveal, toggled by IntersectionObserver */
+.swell {
+  opacity: 0;
+  transform: translate3d(0, 2rem, 0);
+  transition:
+    opacity 0.85s var(--ease-swell),
+    transform 0.85s var(--ease-swell);
+}
+
+.swell[data-visible="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 42s linear infinite;
+}
+
+/* ==========================================================================
+   controls
+   ========================================================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  height: 3rem;
+  padding-inline: 1.6rem;
+  border-radius: 999px;
+  font-family: var(--font-archivo), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+  transition:
+    transform 0.35s var(--ease-drop),
+    background-color 0.3s ease,
+    color 0.3s ease,
+    box-shadow 0.35s var(--ease-drop);
+}
+
+.btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgba(255, 255, 255, var(--sheen)) 48%,
+    transparent 72%
+  );
+  transform: translateX(-120%);
+  transition: transform 0.75s var(--ease-swell);
+  pointer-events: none;
+}
+
+.btn:hover::after {
+  transform: translateX(120%);
+}
+
+.btn:active {
+  transform: scale(0.975);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-pop {
+  background: var(--pop);
+  color: var(--pop-ink);
+}
+
+.btn-pop:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px -12px color-mix(in oklab, var(--ink) 65%, transparent);
+}
+
+.btn-ink {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.btn-ink:hover {
+  transform: translateY(-2px);
+  background: var(--sea);
+  box-shadow: 0 12px 26px -14px color-mix(in oklab, var(--ink) 70%, transparent);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: inherit;
+  border: 1px solid color-mix(in oklab, currentColor 34%, transparent);
+}
+
+.btn-ghost:hover {
+  background: color-mix(in oklab, currentColor 8%, transparent);
+  transform: translateY(-2px);
+}
+
+.btn-sm {
+  height: 2.4rem;
+  padding-inline: 1.1rem;
+  font-size: 0.6875rem;
+}
+
+.field {
+  width: 100%;
+  height: 3rem;
+  padding-inline: 1rem;
+  background: var(--shell);
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  color: var(--ink);
+  font-size: 0.9375rem;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.field::placeholder {
+  color: color-mix(in oklab, var(--muted) 85%, transparent);
+}
+
+.field:focus {
+  outline: none;
+  border-color: var(--sea-mid);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--sea-mid) 18%, transparent);
+}
+
+/* ==========================================================================
+   surfaces
+   ========================================================================== */
+
+.card {
+  background: var(--shell);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.hairline {
+  border-top: 1px solid var(--line);
+}
+
+.deckle {
+  box-shadow:
+    0 1px 2px -1px color-mix(in oklab, var(--ink) 30%, transparent),
+    0 18px 40px -28px color-mix(in oklab, var(--ink) 60%, transparent);
+}
+
+.on-water {
+  color: var(--hero-ink);
+}
+
+.muted-water {
+  color: var(--hero-muted);
+}
+
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+/* ==========================================================================
+   reduced motion
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .wave-layer,
+  .sun-disc,
+  .bobbing,
+  .glitter,
+  .marquee-track {
+    animation: none !important;
+  }
+
+  .rise {
+    opacity: 1;
+    animation: none !important;
+  }
+
+  .swell {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .btn::after {
+    display: none;
+  }
+}

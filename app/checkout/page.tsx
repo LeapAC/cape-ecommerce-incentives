@@ -1,0 +1,392 @@
+"use client"
+
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { useCart } from "@/lib/cart"
+import { useStoredAddress } from "@/lib/use-address"
+import { isAddressComplete, type ShippingAddress } from "@/lib/address"
+import { money, moneyExact } from "@/lib/format"
+import {
+  newOrderId,
+  orderLinesFrom,
+  saveOrder,
+  totalsFor,
+  type Order,
+} from "@/lib/order"
+import { TopIsWater } from "@/lib/water-top"
+import { Horizon, WaveEdge } from "@/components/ocean/horizon"
+import { ProductArt } from "@/components/product-art"
+import { ArrowRight, Check, Minus, Plus } from "@/components/icons"
+
+const STATES = [
+  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME",
+  "MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA",
+  "RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC",
+]
+
+export default function CheckoutPage() {
+  const { lines, subtotal, setQuantity, clear, hydrated } = useCart()
+  const { address, setField, hydrated: addressReady } = useStoredAddress()
+  const router = useRouter()
+  const [placing, setPlacing] = useState(false)
+
+  const totals = totalsFor(subtotal)
+  const canPlace =
+    lines.length > 0 && isAddressComplete(address) && Boolean(address.name && address.email)
+
+  const placeOrder = () => {
+    if (!canPlace || placing) return
+    setPlacing(true)
+
+    const order: Order = {
+      id: newOrderId(),
+      createdAt: new Date().toISOString(),
+      address,
+      lines: orderLinesFrom(lines),
+      ...totals,
+    }
+
+    // The incentives integration writes order.leap here before saving, so the
+    // reference_id and connect_url land on the order record.
+    saveOrder(order)
+    clear()
+    router.push(`/checkout/complete?order=${order.id}`)
+  }
+
+  return (
+    <>
+      <section className="relative overflow-hidden pt-32 pb-24">
+        <TopIsWater />
+        <Horizon horizon={72} trim />
+        <div className="on-water relative mx-auto max-w-[88rem] px-5 sm:px-8">
+          <p className="label muted-water">Step two of two</p>
+          <h1 className="display mt-4 text-[clamp(2.4rem,6vw,4rem)]">Checkout</h1>
+        </div>
+        <div className="absolute inset-x-0 -bottom-px z-20">
+          <WaveEdge fill="var(--paper)" />
+        </div>
+      </section>
+
+      {hydrated && lines.length === 0 ? (
+        <EmptyCheckout />
+      ) : (
+        <div className="mx-auto grid max-w-[88rem] gap-x-16 gap-y-12 px-5 py-16 sm:px-8 lg:grid-cols-[1.15fr_0.85fr] lg:py-20">
+          {/* ── form ──────────────────────────────────────────────────── */}
+          <div className="space-y-12">
+            <Section n="1" title="Contact">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field
+                  label="Full name"
+                  value={address.name}
+                  onChange={(v) => setField("name", v)}
+                  autoComplete="name"
+                  disabled={!addressReady}
+                />
+                <Field
+                  label="Email"
+                  type="email"
+                  value={address.email}
+                  onChange={(v) => setField("email", v)}
+                  autoComplete="email"
+                  disabled={!addressReady}
+                />
+              </div>
+            </Section>
+
+            <Section
+              n="2"
+              title="Shipping address"
+              note="Rebate programs are set by the utility that serves this address, so the full street address matters."
+            >
+              <div className="grid gap-4">
+                <Field
+                  label="Street address"
+                  value={address.address_line_1}
+                  onChange={(v) => setField("address_line_1", v)}
+                  autoComplete="address-line1"
+                  disabled={!addressReady}
+                />
+                <Field
+                  label="Apartment, unit, suite"
+                  optional
+                  value={address.address_line_2}
+                  onChange={(v) => setField("address_line_2", v)}
+                  autoComplete="address-line2"
+                  disabled={!addressReady}
+                />
+                <div className="grid gap-4 sm:grid-cols-[1.4fr_0.7fr_0.9fr]">
+                  <Field
+                    label="City"
+                    value={address.city}
+                    onChange={(v) => setField("city", v)}
+                    autoComplete="address-level2"
+                    disabled={!addressReady}
+                  />
+                  <div>
+                    <label className="label-sm text-muted" htmlFor="state">
+                      State
+                    </label>
+                    <select
+                      id="state"
+                      className="field mt-2"
+                      value={address.state}
+                      onChange={(e) => setField("state", e.target.value)}
+                      autoComplete="address-level1"
+                      disabled={!addressReady}
+                    >
+                      <option value="">—</option>
+                      {STATES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <Field
+                    label="ZIP"
+                    inputMode="numeric"
+                    maxLength={5}
+                    value={address.zip_code}
+                    onChange={(v) => setField("zip_code", v.replace(/\D/g, "").slice(0, 5))}
+                    autoComplete="postal-code"
+                    disabled={!addressReady}
+                  />
+                </div>
+              </div>
+            </Section>
+
+            <Section n="3" title="Delivery">
+              <div className="space-y-3">
+                <Choice
+                  title="Standard"
+                  body="Two to five business days"
+                  price={totals.shipping === 0 ? "Free" : money(totals.shipping)}
+                  selected
+                />
+                <Choice title="White glove install" body="Licensed electrician, booked after you order" price="Quoted" />
+              </div>
+            </Section>
+
+            <Section n="4" title="Payment" note="Demonstration storefront. No card is charged and no card details are stored.">
+              <div className="grid gap-4">
+                <Field label="Card number" placeholder="4242 4242 4242 4242" value="" onChange={() => {}} />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Expiry" placeholder="12 / 29" value="" onChange={() => {}} />
+                  <Field label="CVC" placeholder="123" value="" onChange={() => {}} />
+                </div>
+              </div>
+            </Section>
+          </div>
+
+          {/* ── summary ───────────────────────────────────────────────── */}
+          <aside className="lg:sticky lg:top-28 lg:self-start">
+            <div className="card p-6">
+              <h2 className="display text-[1.8rem]">Order summary</h2>
+
+              <ul className="mt-6 divide-y">
+                {lines.map((line) => (
+                  <li key={line.slug} className="flex gap-4 py-4">
+                    <div className="overflow-hidden rounded-lg border">
+                      <ProductArt art={line.art} className="h-16 w-16" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="serif text-[1rem] leading-tight">{line.name}</p>
+                      {line.isDeposit && (
+                        <p className="label-sm text-muted mt-1.5">
+                          Deposit · {money(line.listPrice)} total
+                        </p>
+                      )}
+                      <div className="mt-2 flex items-center rounded-full border" style={{ width: "fit-content" }}>
+                        <button
+                          type="button"
+                          onClick={() => setQuantity(line.slug, line.quantity - 1)}
+                          className="flex h-7 w-7 items-center justify-center"
+                          aria-label={`Fewer ${line.name}`}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </button>
+                        <span className="tabular w-5 text-center text-xs">{line.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => setQuantity(line.slug, line.quantity + 1)}
+                          className="flex h-7 w-7 items-center justify-center"
+                          aria-label={`More ${line.name}`}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                    <span className="tabular text-sm font-semibold">
+                      {money(line.price * line.quantity)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              <dl className="mt-4 space-y-2.5 border-t pt-5 text-sm">
+                <Row label="Subtotal" value={moneyExact(totals.subtotal)} />
+                <Row
+                  label="Shipping"
+                  value={totals.shipping === 0 ? "Free" : moneyExact(totals.shipping)}
+                />
+                <Row label="Estimated tax" value={moneyExact(totals.tax)} />
+              </dl>
+
+              {/*
+                Leap incentives placement 3 of 3 — applied.
+                Due today stays subtotal + shipping + tax - upfront_amount.
+                Money that arrives after purchase gets its own block below this
+                total, never subtracted from it. Nothing renders until the
+                integration lands.
+              */}
+
+              <div className="mt-5 flex items-baseline gap-3 border-t pt-5">
+                <span className="label">Due today</span>
+                <span className="tabular display ml-auto text-[2.1rem]">
+                  {moneyExact(totals.total)}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={placeOrder}
+                disabled={!canPlace || placing}
+                className="btn btn-pop mt-6 w-full"
+              >
+                {placing ? "Placing order…" : "Place order"}
+                {!placing && <ArrowRight className="h-4 w-4" />}
+              </button>
+
+              {!canPlace && hydrated && (
+                <p className="text-muted mt-3 text-center text-xs">
+                  Add your name, email, and a full shipping address to continue.
+                </p>
+              )}
+            </div>
+          </aside>
+        </div>
+      )}
+    </>
+  )
+}
+
+function EmptyCheckout() {
+  return (
+    <div className="mx-auto max-w-[88rem] px-5 py-28 text-center sm:px-8">
+      <p className="wonk text-[2rem]">Your cart is empty.</p>
+      <p className="text-muted mx-auto mt-4 max-w-[38ch]">
+        Hard to check out with nothing in it. The chargers are the sensible place to start.
+      </p>
+      <Link href="/shop/shore-power" className="btn btn-ink mt-8">
+        Shop shore power
+        <ArrowRight className="h-4 w-4" />
+      </Link>
+    </div>
+  )
+}
+
+function Section({
+  n,
+  title,
+  note,
+  children,
+}: {
+  n: string
+  title: string
+  note?: string
+  children: React.ReactNode
+}) {
+  return (
+    <section>
+      <div className="flex items-baseline gap-3">
+        <span
+          className="label-sm flex h-6 w-6 items-center justify-center rounded-full"
+          style={{ background: "var(--ink)", color: "var(--paper)" }}
+        >
+          {n}
+        </span>
+        <h2 className="display text-[1.7rem]">{title}</h2>
+      </div>
+      {note && <p className="text-muted mt-3 max-w-[54ch] text-sm leading-snug">{note}</p>}
+      <div className="mt-6">{children}</div>
+    </section>
+  )
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  optional,
+  ...rest
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  optional?: boolean
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">) {
+  const id = label.toLowerCase().replace(/[^a-z]+/g, "-")
+  return (
+    <div>
+      <label className="label-sm text-muted" htmlFor={id}>
+        {label}
+        {optional && <span className="ml-1.5 opacity-60">optional</span>}
+      </label>
+      <input
+        id={id}
+        className="field mt-2"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        {...rest}
+      />
+    </div>
+  )
+}
+
+function Choice({
+  title,
+  body,
+  price,
+  selected,
+}: {
+  title: string
+  body: string
+  price: string
+  selected?: boolean
+}) {
+  return (
+    <div
+      className="flex items-center gap-4 rounded-xl border px-4 py-4"
+      style={{
+        borderColor: selected ? "var(--ink)" : "var(--line)",
+        background: selected ? "var(--shell)" : "transparent",
+      }}
+    >
+      <span
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border"
+        style={{
+          borderColor: selected ? "var(--ink)" : "var(--line-strong)",
+          background: selected ? "var(--ink)" : "transparent",
+          color: "var(--paper)",
+        }}
+      >
+        {selected && <Check className="h-3 w-3" />}
+      </span>
+      <div>
+        <p className="text-sm font-semibold">{title}</p>
+        <p className="text-muted text-xs">{body}</p>
+      </div>
+      <span className="label-sm ml-auto">{price}</span>
+    </div>
+  )
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between">
+      <dt className="text-muted">{label}</dt>
+      <dd className="tabular">{value}</dd>
+    </div>
+  )
+}

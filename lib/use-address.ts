@@ -1,0 +1,44 @@
+"use client"
+
+import { useCallback, useEffect, useState } from "react"
+import { EMPTY_ADDRESS, type ShippingAddress } from "./address"
+
+const STORAGE_KEY = "cape-address"
+
+/**
+ * Address persisted client-side for the session, so one entered on a product
+ * page prefills checkout.
+ */
+export function useStoredAddress() {
+  const [address, setAddressState] = useState<ShippingAddress>(EMPTY_ADDRESS)
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) setAddressState({ ...EMPTY_ADDRESS, ...(JSON.parse(raw) as ShippingAddress) })
+    } catch {
+      /* fall back to empty */
+    }
+    setHydrated(true)
+  }, [])
+
+  const persist = (next: ShippingAddress) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+    } catch {
+      /* nothing useful to do here */
+    }
+    return next
+  }
+
+  const setAddress = useCallback((next: ShippingAddress) => {
+    setAddressState(persist(next))
+  }, [])
+
+  const setField = useCallback((field: keyof ShippingAddress, value: string) => {
+    setAddressState((prev) => persist({ ...prev, [field]: value }))
+  }, [])
+
+  return { address, setAddress, setField, hydrated }
+}
