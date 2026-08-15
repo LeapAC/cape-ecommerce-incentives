@@ -4,11 +4,11 @@ import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
 import { formatAddress } from "@/lib/address"
-import { moneyExact } from "@/lib/format"
+import { money, moneyExact } from "@/lib/format"
 import { lastOrderId, loadOrder, type Order } from "@/lib/order"
 import { TopIsWater } from "@/lib/water-top"
 import { Horizon, WaveEdge } from "@/components/ocean/horizon"
-import { ArrowRight, Check, Truck } from "@/components/icons"
+import { ArrowRight, Bolt, Check, Truck } from "@/components/icons"
 
 export default function CompletePage() {
   return (
@@ -68,15 +68,16 @@ function Complete() {
               <Step n="3" title="Install, if you booked it">
                 A licensed electrician calls within three days to schedule.
               </Step>
+              {order?.leap?.connect_url && (
+                <Step n="4" title="Claim your rebates">
+                  Once the charger is in, confirm your details with Leap. Most programs need the
+                  install date and a photo, and it takes a few minutes.
+                </Step>
+              )}
             </ol>
-
-            {/*
-              Leap incentives handoff.
-              The connect_url returned at checkout belongs here as a clear next
-              step, alongside a line naming who files the claim. Renders once
-              the integration lands and order.leap is populated.
-            */}
           </section>
+
+          {order?.leap && <ClaimHandoff leap={order.leap} />}
         </div>
 
         <aside>
@@ -139,6 +140,89 @@ function Complete() {
         </aside>
       </div>
     </>
+  )
+}
+
+/**
+ * The post-purchase handoff.
+ *
+ * cape promised this money while the shopper was still deciding, so the
+ * confirmation page has to say plainly how they get it. The customer files the
+ * claim themselves; cape hands over the deep link Leap returned and never
+ * builds its own URL. Leap emails them separately, so there is no duplicate
+ * confirmation here.
+ *
+ * The claim only completes after installation, which is the real reason this is
+ * a saved link rather than a "finish now" button.
+ */
+function ClaimHandoff({ leap }: { leap: NonNullable<Order["leap"]> }) {
+  const back = leap.installAmount ?? 0
+  const perYear = leap.ongoingAmount ?? 0
+  if (!leap.connect_url && back === 0 && perYear === 0) return null
+
+  return (
+    <section
+      className="rounded-2xl p-6"
+      style={{ background: "var(--shell-sunk)", border: "1px solid var(--line)" }}
+    >
+      <div className="flex items-center gap-2.5">
+        <Bolt className="h-4 w-4 shrink-0" style={{ color: "var(--sun)" }} />
+        <h2 className="label">Your rebates</h2>
+      </div>
+
+      {(back > 0 || perYear > 0) && (
+        <div className="mt-4 flex flex-wrap items-end gap-x-8 gap-y-3">
+          {back > 0 && (
+            <div>
+              <p className="tabular display text-[2.3rem] leading-none">{money(back)}</p>
+              <p className="text-ink-soft mt-1.5 text-sm">back after install</p>
+            </div>
+          )}
+          {perYear > 0 && (
+            <div>
+              <p className="tabular serif text-[1.3rem] leading-none">
+                +{money(perYear)}
+                <span className="text-muted text-[0.8rem]"> /yr</span>
+              </p>
+              <p className="label-sm text-muted mt-1.5">from VPP</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      <p className="text-ink-soft mt-5 max-w-[58ch] text-sm leading-relaxed">
+        You file these{leap.utilityName ? ` with ${leap.utilityName}` : ""}, through Leap. We have
+        already passed over everything we know about your order, so what is left is the install
+        date and anything the program asks to see. Leap will email you and track each claim through
+        to payment.
+      </p>
+
+      {leap.connect_url ? (
+        <>
+          <a
+            href={leap.connect_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-pop mt-5"
+          >
+            Start your claim
+            <ArrowRight className="h-4 w-4" />
+          </a>
+          <p className="text-muted mt-3 text-xs leading-snug">
+            Bookmark this: the claim can only be completed once your charger is installed. If the
+            link is not ready yet, give it a minute and reload.
+          </p>
+        </>
+      ) : (
+        <p className="text-muted mt-5 text-xs leading-snug">
+          We are still setting up your claim. Leap will email you a link shortly.
+        </p>
+      )}
+
+      <p className="text-muted mt-4 border-t pt-4 text-xs">
+        Reference <span className="tabular font-semibold">{leap.reference_id}</span>
+      </p>
+    </section>
   )
 }
 

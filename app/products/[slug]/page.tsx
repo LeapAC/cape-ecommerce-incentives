@@ -6,6 +6,7 @@ import { money } from "@/lib/format"
 import { ProductArt } from "@/components/product-art"
 import { ProductCard } from "@/components/product-card"
 import { AddToCart } from "@/components/add-to-cart"
+import { ProductIncentives } from "@/components/incentives/product-incentives"
 import { Reveal } from "@/components/reveal"
 import { ArrowLeft, Check, Star, Truck } from "@/components/icons"
 
@@ -104,11 +105,15 @@ export default async function ProductPage({ params }: PageProps<"/products/[slug
             <AddToCart product={product} />
           </div>
 
-          {/*
-            Leap incentives placement 1 of 3 — awareness.
-            Address entry plus the eligible-programs card goes here, directly
-            under the price. Nothing is rendered until the integration lands.
-          */}
+          {/* Leap incentives placement 1 of 3: awareness, directly under the price. */}
+          {product.incentive?.leapDeviceId && (
+            <div className="mt-6">
+              <ProductIncentives
+                slug={product.slug}
+                deviceId={product.incentive.leapDeviceId}
+              />
+            </div>
+          )}
 
           <p className="text-muted mt-5 flex items-center gap-2 text-sm">
             <Truck className="h-4 w-4 shrink-0" />

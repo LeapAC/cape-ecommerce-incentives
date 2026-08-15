@@ -30,6 +30,20 @@ export interface IncentiveAttributes {
   energyStar: boolean
   /** Whether install is typically required to claim post-purchase rebates. */
   installRequired: boolean
+  /**
+   * Leap catalog device UUID, mapped by hand and committed.
+   *
+   * Device ids are minted per environment, so these are production ids and will
+   * 422 against staging. Never guess one: a wrong UUID is a 422, and a valid
+   * UUID for the wrong device silently returns someone else's rebate. A product
+   * with no mapping is skipped rather than looked up.
+   */
+  leapDeviceId: string
+  /**
+   * The real catalog device this fictional product maps to. Kept visible so the
+   * mapping is auditable rather than a bare UUID nobody can check.
+   */
+  deviceLabel: string
 }
 
 export interface Product {
@@ -154,6 +168,8 @@ export const PRODUCTS: Product[] = [
       networked: true,
       energyStar: true,
       installRequired: true,
+      leapDeviceId: "fdb72f89-8548-4d86-8196-c18394b6af52",
+      deviceLabel: "Wallbox Pulsar Plus (Level 2, networked, ENERGY STAR)",
     },
   },
   {
@@ -199,6 +215,8 @@ export const PRODUCTS: Product[] = [
       networked: true,
       energyStar: true,
       installRequired: false,
+      leapDeviceId: "711ce5f1-231d-4994-9fe4-c3e6002f629d",
+      deviceLabel: "ChargePoint Home Flex (Level 2, plug-in or hardwired)",
     },
   },
   {
@@ -245,6 +263,8 @@ export const PRODUCTS: Product[] = [
       networked: true,
       energyStar: true,
       installRequired: true,
+      leapDeviceId: "b1203ad6-b8f0-486b-a378-aa122d440ba0",
+      deviceLabel: "Wallbox Pulsar Pro (Level 2, networked, ENERGY STAR)",
     },
   },
   {
@@ -291,6 +311,8 @@ export const PRODUCTS: Product[] = [
       networked: true,
       energyStar: true,
       installRequired: true,
+      leapDeviceId: "20fe2bc2-91fe-40dc-b626-21852a9dd936",
+      deviceLabel: "ChargePoint CT4000 (Level 2 dual-port commercial)",
     },
   },
   {
@@ -336,6 +358,8 @@ export const PRODUCTS: Product[] = [
       networked: true,
       energyStar: false,
       installRequired: true,
+      leapDeviceId: "3b964542-738d-4645-90e6-60347ce9313a",
+      deviceLabel: "Tesla Universal Wall Connector (Level 2, networked)",
     },
   },
 

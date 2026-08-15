@@ -1,0 +1,136 @@
+import { NextResponse } from "next/server"
+import { LeapApiError, lookupIncentives } from "@/lib/leap/client"
+import { missingAddressFields, type ShippingAddress } from "@/lib/address"
+import { emptyView, toIncentiveView, type IncentiveView } from "@/lib/incentives/model"
+import { toCustomerDevices, type DeviceLine } from "@/lib/incentives/devices"
+
+/**
+ * The only thing the browser talks to. The partner key lives here and on the
+ * server module this imports, never in a bundle.
+ *
+ * Incentive results are per-address and program data changes, so this must never
+ * be served from a static or CDN cache.
+ */
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
+interface QuoteRequest {
+  address: Partial<ShippingAddress>
+  devices: DeviceLine[]
+  /**
+   * "preview" is a throwaway browsing lookup: a fresh reference_id each time and
+   * no application. "checkout" is durable: the caller supplies a reference_id
+   * derived from the order and an application is created, which is what makes
+   * connect_url a working link.
+   */
+  mode?: "preview" | "checkout"
+  referenceId?: string
+}
+
+export type QuoteResponse =
+  | { ok: true; view: IncentiveView }
+  | { ok: false; error: { message: string; retryable: boolean; retryAfter?: number } }
+
+/** Coverage gaps are a normal outcome, not a failure. */
+const NO_TERRITORY =
+  "We could not find a utility serving this address, so there are no programs to check against it."
+const BAD_ADDRESS =
+  "We could not locate that address. Check the street number and city, then try again."
+
+function fail(
+  message: string,
+  status: number,
+  retryable: boolean,
+  retryAfter?: number,
+): NextResponse<QuoteResponse> {
+  return NextResponse.json(
+    { ok: false, error: { message, retryable, retryAfter } },
+    { status, headers: { "Cache-Control": "no-store" } },
+  )
+}
+
+function ok(view: IncentiveView): NextResponse<QuoteResponse> {
+  return NextResponse.json({ ok: true, view }, { headers: { "Cache-Control": "no-store" } })
+}
+
+export async function POST(request: Request): Promise<NextResponse<QuoteResponse>> {
+  let body: QuoteRequest
+  try {
+    body = (await request.json()) as QuoteRequest
+  } catch {
+    return fail("Malformed request body.", 400, false)
+  }
+
+  // Validate before calling Leap, and name what is missing.
+  const address = body.address ?? {}
+  const missing = missingAddressFields(address)
+  if (missing.length > 0) {
+    return fail(`Missing required address fields: ${missing.join(", ")}.`, 400, false)
+  }
+
+  const devices = toCustomerDevices(body.devices ?? [])
+  if (devices.length === 0) {
+    // Nothing in the basket maps to a catalog device. Not an error: this is the
+    // correct outcome for foils, craft, and kit, which have no Leap mapping.
+    return ok(emptyView(body.referenceId ?? "none"))
+  }
+
+  const checkout = body.mode === "checkout"
+  const referenceId =
+    checkout && body.referenceId
+      ? body.referenceId
+      : `cape-preview-${crypto.randomUUID()}`
+
+  try {
+    const result = await lookupIncentives({
+      reference_id: referenceId,
+      address: {
+        address_line_1: address.address_line_1!.trim(),
+        address_line_2: address.address_line_2?.trim() || undefined,
+        city: address.city!.trim(),
+        state: address.state!.trim().toUpperCase(),
+        zip_code: address.zip_code!.trim(),
+        country_code: (address.country_code || "US").toUpperCase(),
+      },
+      customer_devices: devices,
+      customer_classification: "RESIDENTIAL",
+      create_application: checkout,
+    })
+
+    return ok(toIncentiveView(result))
+  } catch (err) {
+    if (!(err instanceof LeapApiError)) {
+      console.error("[incentives] unexpected failure", err)
+      return fail("Could not check incentives right now.", 500, true)
+    }
+
+    // Address-coverage outcomes become a successful empty result. The browser
+    // then has one less branch and cannot render a coverage gap as a failure.
+    if (err.status === 404) {
+      return ok(emptyView(referenceId, NO_TERRITORY))
+    }
+    if (err.status === 422 && /geocod/i.test(err.code + err.message)) {
+      return ok(emptyView(referenceId, BAD_ADDRESS))
+    }
+
+    // Everything else is logged with its opaque code and given a safe message.
+    console.error(
+      `[incentives] lookup failed status=${err.status} code=${err.code} ref=${referenceId}: ${err.message}`,
+    )
+
+    if (err.status === 401 || err.status === 403) {
+      // A configuration problem on our side. Never surfaced to the shopper.
+      return fail("Incentive lookups are unavailable right now.", 503, false)
+    }
+    if (err.status === 422 || err.status === 400) {
+      // Our request was wrong, most likely a bad device mapping. Retrying the
+      // same input cannot help.
+      return fail("We could not check incentives for this item.", 422, false)
+    }
+    if (err.status === 429) {
+      return fail("Too many lookups just now. Try again shortly.", 429, true, err.retryAfter)
+    }
+
+    return fail("Could not reach the incentives service.", 502, true)
+  }
+}

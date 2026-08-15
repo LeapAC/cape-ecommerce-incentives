@@ -4,6 +4,7 @@ import "./globals.css"
 import { CartProvider } from "@/lib/cart"
 import { ThemeProvider, themeBootScript } from "@/lib/theme"
 import { WaterTopProvider } from "@/lib/water-top"
+import { IncentivesProvider } from "@/lib/incentives/context"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { CartDrawer } from "@/components/cart-drawer"
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-screen flex-col">
         <ThemeProvider>
           <CartProvider>
+            <IncentivesProvider>
             <WaterTopProvider>
               <div className="grain-fixed" aria-hidden />
               <SiteHeader />
@@ -52,6 +54,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <SiteFooter />
               <CartDrawer />
             </WaterTopProvider>
+            </IncentivesProvider>
           </CartProvider>
         </ThemeProvider>
       </body>

@@ -24,12 +24,20 @@ export interface Order {
   /** subtotal + shipping + tax, before any point-of-sale incentive. */
   total: number
   /**
-   * Filled in by the incentives integration. Both are needed to reconcile a
-   * rebate back to this order later, so they are stored even when empty.
+   * The incentives snapshot taken when the order was placed.
+   *
+   * `reference_id` and `connect_url` are the pair needed to reconcile a rebate
+   * back to this order later, so the reference is stored even when the lookup
+   * failed and there is no link. The amounts are recorded as promised at the
+   * time of sale, since programs change and the confirmation page should show
+   * what the shopper was actually told.
    */
   leap?: {
     reference_id: string
     connect_url?: string
+    installAmount?: number
+    ongoingAmount?: number
+    utilityName?: string | null
   }
 }
 

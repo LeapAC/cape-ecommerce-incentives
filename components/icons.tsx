@@ -121,6 +121,14 @@ export const Pencil = (p: IconProps) => (
   </Svg>
 )
 
+export const Info = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 11v5.5" />
+    <path d="M12 7.6v.2" />
+  </Svg>
+)
+
 export const Anchor = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="5" r="2" />

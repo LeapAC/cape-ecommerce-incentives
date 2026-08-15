@@ -4,8 +4,10 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { useCart } from "@/lib/cart"
-import { useStoredAddress } from "@/lib/use-address"
+import { useIncentives, useIncentiveQuote } from "@/lib/incentives/context"
 import { isAddressComplete, type ShippingAddress } from "@/lib/address"
+import { IncentivePanel } from "@/components/incentives/incentive-panel"
+import { useCartDeviceLines } from "@/components/incentives/cart-incentives"
 import { money, moneyExact } from "@/lib/format"
 import {
   newOrderId,
@@ -27,28 +29,66 @@ const STATES = [
 
 export default function CheckoutPage() {
   const { lines, subtotal, setQuantity, clear, hydrated } = useCart()
-  const { address, setField, hydrated: addressReady } = useStoredAddress()
+  const { address, setField, addressReady } = useIncentives()
   const router = useRouter()
   const [placing, setPlacing] = useState(false)
 
+  // Browsing preview: no application is created while the shopper is still
+  // typing. The durable lookup happens once, at order placement.
+  const deviceLines = useCartDeviceLines()
+  const quote = useIncentiveQuote(deviceLines)
+  const view = quote.state.status === "ready" ? quote.state.view : null
+
   const totals = totalsFor(subtotal)
+  const upfront = view?.upfrontTotal ?? 0
+  const dueToday = Math.max(0, totals.total - upfront)
+  const backAfter = view?.installTotal ?? 0
+  const perYear = view?.ongoingTotal ?? 0
   const canPlace =
     lines.length > 0 && isAddressComplete(address) && Boolean(address.name && address.email)
 
-  const placeOrder = () => {
+  const placeOrder = async () => {
     if (!canPlace || placing) return
     setPlacing(true)
 
+    const id = newOrderId()
     const order: Order = {
-      id: newOrderId(),
+      id,
       createdAt: new Date().toISOString(),
       address,
       lines: orderLinesFrom(lines),
       ...totals,
     }
 
-    // The incentives integration writes order.leap here before saving, so the
-    // reference_id and connect_url land on the order record.
+    // The durable lookup: one reference_id derived from the order, held for
+    // this shopper at this address, with an application created so connect_url
+    // is a working link. A failure here must never block the order, so the
+    // result is best-effort and the order is saved either way.
+    if (deviceLines.length > 0) {
+      const referenceId = `cape-${id}`
+      try {
+        const res = await fetch("/api/incentives/quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address, devices: deviceLines, mode: "checkout", referenceId }),
+          cache: "no-store",
+        })
+        const body = await res.json()
+        const settled = body?.ok ? body.view : null
+        order.leap = {
+          reference_id: referenceId,
+          connect_url: settled?.connectUrl ?? undefined,
+          installAmount: settled?.installTotal ?? backAfter,
+          ongoingAmount: settled?.ongoingTotal ?? perYear,
+          utilityName: settled?.utilityName ?? view?.utilityName ?? null,
+        }
+      } catch {
+        // Keep the reference_id regardless: without it the rebate cannot be
+        // reconciled to this order later.
+        order.leap = { reference_id: referenceId }
+      }
+    }
+
     saveOrder(order)
     clear()
     router.push(`/checkout/complete?order=${order.id}`)
@@ -233,20 +273,55 @@ export default function CheckoutPage() {
                 <Row label="Estimated tax" value={moneyExact(totals.tax)} />
               </dl>
 
-              {/*
-                Leap incentives placement 3 of 3 — applied.
-                Due today stays subtotal + shipping + tax - upfront_amount.
-                Money that arrives after purchase gets its own block below this
-                total, never subtracted from it. Nothing renders until the
-                integration lands.
-              */}
+              {/* Point-of-sale discount is the only incentive that touches what
+                  is due today. Everything else arrives after purchase and is
+                  kept in its own block below. */}
+              {upfront > 0 && (
+                <dl className="mt-2.5 text-sm">
+                  <Row label="Instant rebate" value={`−${moneyExact(upfront)}`} />
+                </dl>
+              )}
 
               <div className="mt-5 flex items-baseline gap-3 border-t pt-5">
                 <span className="label">Due today</span>
                 <span className="tabular display ml-auto text-[2.1rem]">
-                  {moneyExact(totals.total)}
+                  {moneyExact(dueToday)}
                 </span>
               </div>
+
+              {(backAfter > 0 || perYear > 0) && (
+                <div
+                  className="mt-4 rounded-xl p-4"
+                  style={{ background: "var(--shell-sunk)", border: "1px solid var(--line)" }}
+                >
+                  <p className="label text-muted">After purchase</p>
+                  <dl className="mt-3 space-y-2 text-sm">
+                    {backAfter > 0 && (
+                      <Row label="Incentives back after install" value={money(backAfter)} />
+                    )}
+                    {backAfter > 0 && (
+                      <div className="flex justify-between border-t pt-2 font-semibold">
+                        <dt>Effective cost</dt>
+                        <dd className="tabular">{moneyExact(Math.max(0, dueToday - backAfter))}</dd>
+                      </div>
+                    )}
+                    {perYear > 0 && (
+                      <Row label="VPP earnings" value={`${money(perYear)} per year`} />
+                    )}
+                  </dl>
+                  <p className="text-muted mt-3 text-xs leading-snug">
+                    Paid by {view?.utilityName ?? "your utility"} after your charger is installed,
+                    not deducted from today&rsquo;s total. You file the claim through Leap.
+                  </p>
+                </div>
+              )}
+
+              {/* Leap incentives placement 3 of 3: applied. */}
+              {deviceLines.length > 0 && (
+                <div className="mt-5">
+                  <IncentivePanel state={quote.state} retry={quote.retry} compact />
+                </div>
+              )}
 
               <button
                 type="button"

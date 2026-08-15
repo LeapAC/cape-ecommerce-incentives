@@ -5,6 +5,7 @@ import { useEffect } from "react"
 import { useCart } from "@/lib/cart"
 import { money } from "@/lib/format"
 import { ProductArt } from "./product-art"
+import { CartIncentiveLine } from "./incentives/cart-incentives"
 import { ArrowRight, Close, Minus, Plus } from "./icons"
 
 const FREE_SHIPPING_AT = 250
@@ -173,8 +174,12 @@ export function CartDrawer() {
               <span className="label">Subtotal</span>
               <span className="tabular display text-[1.9rem]">{money(subtotal)}</span>
             </div>
-            <p className="text-muted mt-1.5 text-xs">
-              Shipping and tax at checkout. Rebates are applied after your address is confirmed.
+            {/* Leap incentives placement 2 of 3: reinforcement. */}
+            <div className="mt-3">
+              <CartIncentiveLine />
+            </div>
+            <p className="text-muted mt-3 text-xs">
+              Shipping and tax at checkout.
             </p>
             <Link
               href="/checkout"
