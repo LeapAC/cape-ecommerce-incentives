@@ -58,12 +58,59 @@ Both derive every token from the three colours in the logo. Themes are CSS custo
 
 ## Incentives integration
 
-Three placements are marked with comments and currently render nothing:
+cape calls the Leap Incentives Gateway to show shoppers the rebates and VPP earnings they qualify for at their address, next to the price, while they are still deciding.
 
-- `app/products/[slug]/page.tsx` — under the price
-- `app/checkout/page.tsx` — in the order summary, above Due today
-- `app/checkout/complete/page.tsx` — the post-purchase handoff
+### How the call is made
 
-`lib/catalog.ts` carries an `incentive` block per product with the attributes a lookup needs: manufacturer, model number, amperage, kilowatts, networked, ENERGY STAR. Products without one are not eligible and are skipped.
+The partner key is a credential and never reaches the browser:
 
-`lib/order.ts` has an `Order.leap` slot for `reference_id` and `connect_url`, so a rebate can be reconciled to an order after the fact.
+```
+browser → POST /api/incentives/quote → Leap /beta/incentives/lookups
+```
+
+`lib/leap/client.ts` opens with `import "server-only"`, so the build fails if it is ever pulled into a client bundle. The route sets `dynamic = "force-dynamic"`, the upstream call sets `cache: "no-store"`, and both are bounded by a 10 second `AbortController`.
+
+### Reading the response
+
+`lib/incentives/model.ts` is the only place the raw envelope is touched. Every surface renders from its output, so they cannot drift.
+
+Three things it gets right that are easy to get wrong:
+
+- **A program in `program_details` is not an offer.** SMUD returns its Charge@Home program with every tier `FAILED` and zero amounts when the device is off the approved-product list. Gating on array length renders "$0 back" as if it were money. `hasOffer` is gated on actual amounts.
+- **The three amounts are kept apart.** `install_amount` is one-time after purchase and is the headline. `ongoing_amount` is per year and is never added into a one-time total. `upfront_amount` is a point-of-sale discount and is the only one that touches what is due today. It currently always returns 0, and is wired through anyway.
+- **A single program can pay in two ways.** Xcel's Charging Perks Pilot pays $50 at install and $150 per year. Tiers are grouped by `payment_type` and the program appears in both groups, so the timing shown next to each amount is true.
+
+### Requirement handling
+
+Inside each tier, every device result carries a status:
+
+- `COMPLETED` is satisfied and never shown.
+- `IGNORED` is not knowable until after the sale: install date, permit, new-equipment flag, program agreements. These become a collapsed "things you'll confirm when you claim" list, deduped by requirement and framed as upcoming rather than as problems.
+- `FAILED` means the device does not qualify for that tier. A program with no paying tier goes into a collapsed list with its reason. Failures coded `APL-…` (approved-product list) or `DEV-…` (device class) are marked device-specific, because those are recoverable by choosing a different charger, which is worth telling the shopper.
+
+Codes are treated as structured hints with a safe fallback, never as an enumerated list.
+
+### Two reference_id lifetimes
+
+- **Browsing** on the product page and in the cart mints a throwaway `cape-preview-<uuid>` per lookup with `create_application: false`.
+- **Placing an order** derives a durable `cape-<orderId>`, sends `create_application: true`, and persists the returned `connect_url` alongside it on the order. Leap pins the address to a reference_id on first use, so a new address always gets a new one.
+
+### The handoff
+
+The customer files their own claim. The confirmation page shows the `connect_url` Leap returned, never one cape builds, and only when it came back non-empty. cape passes through what it already knows about the order, so what is left for the shopper is the install date and whatever the program asks to see. Leap emails the customer and tracks each claim to payment, so cape sends no rebate email of its own.
+
+A failed lookup never blocks the page, the cart, or the order.
+
+### Device mapping
+
+`lib/catalog.ts` carries `leapDeviceId` plus a readable `deviceLabel` on each charger. Ids come from the production device catalog and are **minted per environment**, so they will 422 against staging. A product with no mapping is skipped rather than looked up, which is the right outcome for foils, craft, and kit.
+
+### Checking it works
+
+These addresses exercise the different states against live programs:
+
+| Address | What it shows |
+|---|---|
+| 1437 Bannock St, Denver, CO 80202 | $550 after install plus $200/yr across three Xcel programs |
+| 1201 J St, Sacramento, CA 95814 | No offer, with the not-on-the-approved-list reason |
+| 1 City Hall Sq, Boston, MA 02201 | No programs in NSTAR territory |
