@@ -18,7 +18,7 @@ import {
   addressLocation,
   locationLabel,
   locationSignature,
-  parseLookupMode,
+  lookupParamAction,
   parseStoredLocation,
   postalFrom,
   resolveLookupMode,
@@ -94,10 +94,11 @@ function writeStorage(key: string, value: string | null) {
 function readLookupMode(): LookupMode {
   try {
     const url = new URL(window.location.href)
-    const param = url.searchParams.get(LOOKUP_MODE_PARAM)
-    if (param !== null) {
-      const chosen = parseLookupMode(param)
-      writeStorage(LOOKUP_MODE_STORAGE_KEY, chosen)
+    const action = lookupParamAction(url.searchParams.get(LOOKUP_MODE_PARAM))
+    if (action.kind !== "none") {
+      if (action.kind === "set") writeStorage(LOOKUP_MODE_STORAGE_KEY, action.mode)
+      if (action.kind === "clear") writeStorage(LOOKUP_MODE_STORAGE_KEY, null)
+      // Stripped even when ignored, so an audience never sees the toggle.
       url.searchParams.delete(LOOKUP_MODE_PARAM)
       window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash)
     }

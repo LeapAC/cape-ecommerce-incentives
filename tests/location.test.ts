@@ -5,6 +5,7 @@ import {
   isValidZip,
   locationLabel,
   locationSignature,
+  lookupParamAction,
   mergePicked,
   parseLookupMode,
   parseStoredLocation,
@@ -107,4 +108,13 @@ test("a pick merges into the latest form state instead of replacing it", () => {
   assert.equal(merged.city, "Atlanta")
   assert.equal(merged.zip_code, "30303")
   assert.equal(latest.address_line_1, "55 Tri", "input is not mutated")
+})
+
+test("only ?lookup=default clears the saved mode; a typo leaves it alone", () => {
+  assert.deepEqual(lookupParamAction(null), { kind: "none" })
+  assert.deepEqual(lookupParamAction("zip"), { kind: "set", mode: "zip" })
+  assert.deepEqual(lookupParamAction("address"), { kind: "set", mode: "address" })
+  assert.deepEqual(lookupParamAction("default"), { kind: "clear" })
+  assert.deepEqual(lookupParamAction("zipp"), { kind: "ignore" })
+  assert.deepEqual(lookupParamAction(""), { kind: "ignore" })
 })

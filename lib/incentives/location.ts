@@ -42,6 +42,24 @@ export function parseLookupMode(value: string | null | undefined): LookupMode | 
   return null
 }
 
+export type LookupParamAction =
+  | { kind: "none" }
+  | { kind: "set"; mode: LookupMode }
+  | { kind: "clear" }
+  | { kind: "ignore" }
+
+/**
+ * What a `?lookup=` value does to the stored override. Only `default` clears
+ * it; a typo such as `zipp` is ignored and the saved choice stays.
+ */
+export function lookupParamAction(param: string | null): LookupParamAction {
+  if (param === null) return { kind: "none" }
+  const mode = parseLookupMode(param)
+  if (mode) return { kind: "set", mode }
+  if (param.trim().toLowerCase() === "default") return { kind: "clear" }
+  return { kind: "ignore" }
+}
+
 /** Resolve the effective mode: stored override, then env default, then address. */
 export function resolveLookupMode(
   stored: string | null | undefined,
