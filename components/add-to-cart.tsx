@@ -51,7 +51,9 @@ export function AddToCart({ product }: { product: Product }) {
         </button>
       </div>
 
-      <button type="button" onClick={handle} className="btn btn-pop flex-1">
+      {/* flex-1 only in the row layout: in the phone column its zero basis
+          collapsed the button to the height of its label. */}
+      <button type="button" onClick={handle} className="btn btn-pop w-full shrink-0 sm:w-auto sm:flex-1">
         {added ? (
           <>
             <Check className="h-4 w-4" /> In the cart
