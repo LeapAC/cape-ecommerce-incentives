@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { LeapApiError, lookupIncentives } from "@/lib/leap/client"
 import { parseStoredLocation, toLeapAddress, type LookupLocation } from "@/lib/incentives/location"
 import { emptyView, toIncentiveView, type IncentiveView } from "@/lib/incentives/model"
-import { toCustomerDevices, type DeviceLine } from "@/lib/incentives/devices"
+import { parseDeviceLines, toCustomerDevices, type DeviceLine } from "@/lib/incentives/devices"
 import { checkCheckoutRequest } from "@/lib/incentives/checkout-guard"
 
 /**
@@ -62,6 +62,15 @@ export async function POST(request: Request): Promise<NextResponse<QuoteResponse
   } catch {
     return fail("Malformed request body.", 400, false)
   }
+  // Valid JSON is not a valid request: null, an array, or a bare string would
+  // otherwise throw on the first property read and surface as a 500.
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return fail("Malformed request body.", 400, false)
+  }
+  const lines = parseDeviceLines(body.devices)
+  if (!lines) {
+    return fail("Malformed device list.", 400, false)
+  }
 
   // Validate before calling Leap. A malformed or half-filled location is the
   // caller's bug, never something to forward.
@@ -90,12 +99,12 @@ export async function POST(request: Request): Promise<NextResponse<QuoteResponse
     }
   }
 
-  const devices = toCustomerDevices(body.devices ?? [])
+  const devices = toCustomerDevices(lines)
   if (devices.length === 0) {
     // Nothing in the basket maps to a catalog device. Not an error: this is the
     // correct outcome for accessories and install services, which have no Leap
     // mapping.
-    return ok(emptyView(body.referenceId ?? "none"))
+    return ok(emptyView(orderReference ?? "none"))
   }
 
   const referenceId = orderReference ?? `cape-preview-${crypto.randomUUID()}`
