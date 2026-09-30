@@ -51,3 +51,16 @@ export function formatAddress(a: ShippingAddress): string {
   const street = [a.address_line_1, a.address_line_2].filter(Boolean).join(" ")
   return [street, a.city, [a.state, a.zip_code].filter(Boolean).join(" ")].filter(Boolean).join(", ")
 }
+
+/**
+ * States, DC, and the inhabited territories. Places reports Puerto Rico and
+ * Guam as their own countries, so the form must offer them as states.
+ */
+export const US_TERRITORIES = ["PR", "GU", "VI", "AS", "MP"] as const
+
+export const US_STATES = [
+  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME",
+  "MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA",
+  "RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC",
+  ...US_TERRITORIES,
+]

@@ -9,6 +9,9 @@
 
 import type { PostalAddress } from "./incentives/location"
 
+/** Places reports these as countries; the Leap address treats them as states. */
+const TERRITORIES = new Set(["PR", "GU", "VI", "AS", "MP"])
+
 export interface PlaceAddressComponent {
   longText: string | null
   shortText: string | null
@@ -36,9 +39,13 @@ export function componentsToPostal(components: PlaceAddressComponent[]): PostalA
   const city = long(
     find(components, "locality", "postal_town", "sublocality_level_1", "sublocality", "neighborhood"),
   )
-  const state = short(find(components, "administrative_area_level_1")).toUpperCase()
+  let state = short(find(components, "administrative_area_level_1")).toUpperCase()
   const zip = long(find(components, "postal_code")).slice(0, 5)
-  const country = short(find(components, "country")).toUpperCase() || "US"
+  let country = short(find(components, "country")).toUpperCase() || "US"
+  if (TERRITORIES.has(country)) {
+    state = country
+    country = "US"
+  }
 
   return {
     address_line_1: [number, route].filter(Boolean).join(" "),

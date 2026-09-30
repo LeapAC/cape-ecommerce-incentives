@@ -65,3 +65,20 @@ test("a place with no street number leaves line 1 incomplete rather than guessin
   assert.equal(out.address_line_1, "Trinity Ave SW")
   assert.equal(out.zip_code, "")
 })
+
+test("Puerto Rico and Guam come back as states the form offers", async () => {
+  const { US_STATES } = await import("../lib/address.ts")
+  const pr = componentsToPostal([
+    c("1", "1", "street_number"),
+    c("Calle Fortaleza", "C. Fortaleza", "route"),
+    c("San Juan", "San Juan", "locality"),
+    c("San Juan", "San Juan", "administrative_area_level_1"),
+    c("Puerto Rico", "PR", "country", "political"),
+    c("00901", "00901", "postal_code"),
+  ])
+  assert.equal(pr.state, "PR")
+  assert.equal(pr.country_code, "US")
+  const gu = componentsToPostal([c("Hagåtña", "Hagåtña", "locality"), c("Guam", "GU", "country")])
+  assert.equal(gu.state, "GU")
+  for (const s of [pr.state, gu.state]) assert.ok(US_STATES.includes(s), s)
+})

@@ -15,7 +15,7 @@ import {
 } from "@/lib/incentives/location"
 import { IncentivePanel } from "@/components/incentives/incentive-panel"
 import { AddressAutocomplete } from "@/components/incentives/address-autocomplete"
-import { STATES } from "@/components/incentives/address-form"
+import { US_STATES as STATES } from "@/lib/address"
 import { useCartDeviceLines } from "@/components/incentives/cart-incentives"
 import { money, moneyExact } from "@/lib/format"
 import {

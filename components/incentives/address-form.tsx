@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { US_STATES as STATES } from "@/lib/address"
 import { useIncentives } from "@/lib/incentives/context"
 import {
   isPostalComplete,
@@ -13,11 +14,7 @@ import {
 import { Pencil } from "@/components/icons"
 import { AddressAutocomplete } from "./address-autocomplete"
 
-export const STATES = [
-  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME",
-  "MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA",
-  "RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC",
-]
+
 
 /**
  * Location entry inside the incentives card, in whichever mode the site is in.
