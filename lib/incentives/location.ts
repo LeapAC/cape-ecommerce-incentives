@@ -96,16 +96,21 @@ export function postalFrom(a: Partial<ShippingAddress | PostalAddress>): PostalA
 }
 
 /**
- * Lay a picked Places address over the form's latest state. Only fields the
- * pick actually filled are taken, so a unit typed into address_line_2 while
- * the pick was resolving survives a suggestion that has no unit.
+ * Lay a picked Places address over the form's latest state. Every address
+ * field comes from the pick, empty ones included, so a unit or ZIP from the
+ * previous address never survives a new pick. Contact fields (name, email)
+ * are left as the shopper has them now, not as a captured copy.
  */
 export function mergePicked<T extends Partial<PostalAddress>>(latest: T, picked: PostalAddress): T {
-  const next = { ...latest }
-  for (const key of Object.keys(picked) as (keyof PostalAddress)[]) {
-    if (picked[key]) (next as Partial<PostalAddress>)[key] = picked[key]
+  return {
+    ...latest,
+    address_line_1: picked.address_line_1,
+    address_line_2: picked.address_line_2,
+    city: picked.city,
+    state: picked.state,
+    zip_code: picked.zip_code,
+    country_code: picked.country_code,
   }
-  return next
 }
 
 /** A committable address location, or null while it is still incomplete. */
