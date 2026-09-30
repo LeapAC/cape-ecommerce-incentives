@@ -7,14 +7,14 @@ import { ArrowRight } from "./icons"
 
 const SUPPORT = [
   { label: "Shipping and returns", href: "/shop" },
-  { label: "Installation", href: "/shop/shore-power" },
+  { label: "Installation", href: "/shop/install" },
   { label: "Rebates and incentives", href: "/checkout" },
   { label: "Warranty", href: "/shop" },
 ]
 
 const COMPANY = [
   { label: "Our story", href: "/" },
-  { label: "Dealers", href: "/shop/craft" },
+  { label: "Commercial", href: "/products/levante-duo" },
   { label: "Press", href: "/" },
   { label: "Careers", href: "/" },
 ]
@@ -38,7 +38,7 @@ export function SiteFooter() {
           <div>
             <CapeLogo tone="inverse" />
             <p className="display mt-7 max-w-[16ch] text-[2.2rem] leading-[0.95]">
-              Go quietly, and stay out longer.
+              Plug in at dusk. Leave full.
             </p>
             <form className="mt-8 flex max-w-sm gap-2">
               <label htmlFor="footer-email" className="sr-only">
@@ -60,7 +60,7 @@ export function SiteFooter() {
               </button>
             </form>
             <p className="muted-water mt-3 text-xs">
-              Tide charts and new drops. Roughly monthly, less in winter.
+              Rate changes, new chargers, and the odd rebate. Roughly monthly.
             </p>
           </div>
 

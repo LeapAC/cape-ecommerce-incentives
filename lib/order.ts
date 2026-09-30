@@ -10,7 +10,6 @@ export interface OrderLine {
   name: string
   quantity: number
   unitPrice: number
-  isDeposit: boolean
 }
 
 export interface Order {
@@ -72,7 +71,6 @@ export function orderLinesFrom(lines: CartLine[]): OrderLine[] {
     name: l.name,
     quantity: l.quantity,
     unitPrice: l.price,
-    isDeposit: l.isDeposit,
   }))
 }
 

@@ -52,21 +52,14 @@ export function formatAddress(a: ShippingAddress): string {
   return [street, a.city, [a.state, a.zip_code].filter(Boolean).join(" ")].filter(Boolean).join(", ")
 }
 
-/** "Bend, OR" — for copy that names where we are checking. */
-export function shortLocality(a: ShippingAddress): string {
-  return [a.city, a.state].filter(Boolean).join(", ")
-}
+/**
+ * States, DC, and the inhabited territories, which Leap addresses as states.
+ */
+export const US_TERRITORIES = ["PR", "GU", "VI", "AS", "MP"] as const
 
-/** A stable signature for (address) so callers can tell when it really changed. */
-export function addressSignature(a: ShippingAddress): string {
-  return [
-    a.address_line_1,
-    a.address_line_2,
-    a.city,
-    a.state,
-    a.zip_code,
-    a.country_code || "US",
-  ]
-    .map((v) => v.trim().toLowerCase())
-    .join("|")
-}
+export const US_STATES = [
+  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME",
+  "MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA",
+  "RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC",
+  ...US_TERRITORIES,
+]

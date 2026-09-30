@@ -497,6 +497,13 @@ h4 {
     box-shadow 0.25s ease;
 }
 
+/* The incentives card is secondary to the product, so its fields run smaller. */
+.field-sm {
+  height: 2.4rem;
+  padding-inline: 0.75rem;
+  font-size: 0.8125rem;
+}
+
 .field::placeholder {
   color: color-mix(in oklab, var(--muted) 85%, transparent);
 }

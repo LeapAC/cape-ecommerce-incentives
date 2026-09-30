@@ -1,13 +1,16 @@
 /**
- * cape — product catalog.
+ * cape: product catalog.
  *
  * Demo data. Everything here is fictional, but the shapes are deliberate:
  * `incentive` carries the attributes a real rebate/incentive API asks for
  * (manufacturer, model number, amperage, networked, ENERGY STAR), so the
  * integration at /api/incentives/quote has something honest to send.
+ *
+ * Only chargers carry an `incentive` block. Accessories and install services
+ * have no Leap catalog device, so they are skipped rather than looked up.
  */
 
-export type CategoryId = "shore-power" | "foils" | "craft" | "kit"
+export type CategoryId = "chargers" | "accessories" | "install"
 
 export interface Category {
   id: CategoryId
@@ -54,8 +57,8 @@ export interface Product {
   category: CategoryId
   price: number
   compareAt?: number
-  /** Craft is reserved with a deposit rather than bought outright. */
-  deposit?: number
+  /** A booked visit rather than a boxed item: no shipping line, no stock. */
+  service?: boolean
   badge?: string
   tagline: string
   blurb: string
@@ -73,60 +76,49 @@ export type ArtKey =
   | "wall-charger"
   | "portable-charger"
   | "finned-charger"
+  | "universal-charger"
   | "duo-pedestal"
-  | "dock-pedestal"
-  | "efoil"
-  | "efoil-big"
-  | "jetboard"
-  | "catamaran"
-  | "runabout"
   | "cable"
   | "mount"
-  | "drysack"
-  | "cap"
-  | "boardsock"
+  | "post"
+  | "load-meter"
+  | "install"
+  | "site-visit"
 
 export const CATEGORIES: Category[] = [
   {
-    id: "shore-power",
-    name: "Shore Power",
-    tagline: "Chargers for the car, the dock, the fleet",
+    id: "chargers",
+    name: "Chargers",
+    tagline: "Level 2 for the garage, the driveway, the lot",
     blurb:
-      "Everything that puts electrons back where you left them. Wall units, pedestals, and one dockside post that will outlive the dock.",
+      "Five chargers, each named for a wind that crosses our coast. Wall units, one that travels, and a dual-port pedestal for the small lot out back.",
     accent: "sea",
   },
   {
-    id: "foils",
-    name: "Foils",
-    tagline: "Electric boards that leave the water alone",
+    id: "accessories",
+    name: "Accessories",
+    tagline: "Cables, mounts, and a smarter circuit",
     blurb:
-      "Carbon boards, quiet motors, no wake and no argument with the harbourmaster. Flat days are back on the calendar.",
-    accent: "pop",
-  },
-  {
-    id: "craft",
-    name: "Craft",
-    tagline: "Two hulls, one hull, zero noise",
-    blurb:
-      "A day cat and a runabout, both electric, both built for long lunches at anchor. Reserved with a deposit, built to order.",
-    accent: "coral",
-  },
-  {
-    id: "kit",
-    name: "Kit",
-    tagline: "Cables, mounts, and things that dry fast",
-    blurb: "The unglamorous half of a good afternoon. Salt-rated, sun-faded on purpose.",
+      "The parts that make a charger tidy and keep your panel happy. Cold-flex cable, a cast mount, a driveway post, and a load manager that skips the panel upgrade.",
     accent: "sun",
+  },
+  {
+    id: "install",
+    name: "Install",
+    tagline: "Licensed electricians, booked at checkout",
+    blurb:
+      "One visit, permit filed, charger on the wall. Book the install with the charger, or start with a site visit if your panel is older than you are.",
+    accent: "coral",
   },
 ]
 
 export const PRODUCTS: Product[] = [
-  // ── Shore Power ────────────────────────────────────────────────────────────
+  // ── Chargers ───────────────────────────────────────────────────────────────
   {
     slug: "mistral-48",
     name: "Mistral",
     designator: "48",
-    category: "shore-power",
+    category: "chargers",
     price: 899,
     compareAt: 1049,
     badge: "Most installed",
@@ -135,7 +127,7 @@ export const PRODUCTS: Product[] = [
       "Forty-eight amps, hardwired, and quiet enough that you will forget it is running. Full charge overnight on a garage circuit you already have.",
     story: [
       "The mistral is the wind that scrubs the sky clean over Provence. It arrives without warning, moves a great deal of air, and then it is gone. We named our workhorse after it because that is roughly the job.",
-      "Forty-eight amps into a hardwired 60 A circuit gives you 11.5 kW, which is around 40 miles of range an hour. Plug in at nine, ignore it, leave at seven. The aluminium body is a single extrusion, anodised rather than painted, so the salt air has nothing to peel.",
+      "Forty-eight amps into a hardwired 60 A circuit gives you 11.5 kW, which is around 40 miles of range an hour. Plug in at nine, ignore it, leave at seven. The aluminium body is a single extrusion, anodised rather than painted, so the weather has nothing to peel.",
       "It schedules itself against your utility's off-peak window, holds the charge below 80 percent unless you tell it otherwise, and reports back over Wi-Fi without asking you to install anything you will regret.",
     ],
     features: [
@@ -176,7 +168,7 @@ export const PRODUCTS: Product[] = [
     slug: "zephyr-32",
     name: "Zephyr",
     designator: "32",
-    category: "shore-power",
+    category: "chargers",
     price: 549,
     tagline: "7.7 kW on a plug. Comes with you.",
     blurb:
@@ -223,7 +215,7 @@ export const PRODUCTS: Product[] = [
     slug: "tramontane-80",
     name: "Tramontane",
     designator: "80",
-    category: "shore-power",
+    category: "chargers",
     price: 1449,
     badge: "Fastest at home",
     tagline: "19.2 kW. For the truck, and the second truck.",
@@ -268,10 +260,59 @@ export const PRODUCTS: Product[] = [
     },
   },
   {
+    slug: "marin-48",
+    name: "Marin",
+    designator: "48",
+    category: "chargers",
+    price: 649,
+    badge: "Charges any EV",
+    tagline: "NACS native, J1772 built in. One charger for both.",
+    blurb:
+      "A 48 A wall unit with a NACS connector and a J1772 adapter that lives in the holster. Buy it once and stop caring which plug the next car uses.",
+    story: [
+      "The marin is the damp wind that comes in off the sea and settles over the Languedoc for a few days at a time. It is not dramatic. It turns up, it stays, and everything works around it.",
+      "Most driveways now hold one of each connector. The Marin charges a NACS car directly and a J1772 car through a latching adapter that clips into the holster, so nobody has to remember where it went.",
+      "It is the least expensive hardwired unit we make and the one we suggest to anyone who is not sure what they will drive in five years.",
+    ],
+    features: [
+      "48 A continuous on a 60 A circuit",
+      "NACS connector with latching J1772 adapter",
+      "Adapter stows in the holster",
+      "24 ft cable",
+      "Power sharing across up to six units",
+    ],
+    specs: {
+      "Power output": "11.5 kW / 48 A",
+      Connector: "NACS, J1772 via adapter",
+      "Cable length": "24 ft",
+      Enclosure: "NEMA 3R",
+      Connectivity: "Wi-Fi",
+      Mounting: "Wall, hardwired",
+      Dimensions: "15.3 × 6.1 × 5.1 in",
+      Warranty: "4 years",
+    },
+    art: "universal-charger",
+    rating: 4.8,
+    reviews: 612,
+    inStock: true,
+    incentive: {
+      productType: "ev_charger",
+      manufacturer: "cape",
+      modelNumber: "CP-MRN-48U",
+      amperage: 48,
+      kilowatts: 11.5,
+      networked: true,
+      energyStar: false,
+      installRequired: true,
+      leapDeviceId: "3b964542-738d-4645-90e6-60347ce9313a",
+      deviceLabel: "Tesla Universal Wall Connector (Level 2, networked)",
+    },
+  },
+  {
     slug: "levante-duo",
     name: "Levante",
     designator: "Duo",
-    category: "shore-power",
+    category: "chargers",
     price: 2290,
     badge: "Commercial",
     tagline: "Two ports, one pedestal, shared load.",
@@ -315,245 +356,13 @@ export const PRODUCTS: Product[] = [
       deviceLabel: "ChargePoint CT4000 (Level 2 dual-port commercial)",
     },
   },
-  {
-    slug: "marin-quay",
-    name: "Marin",
-    designator: "Quay",
-    category: "shore-power",
-    price: 1890,
-    tagline: "Dockside power for the boat and the car that towed it.",
-    blurb:
-      "A marine pedestal with 50 A shore power, a J1772 port, and a masthead light that comes on at dusk without being asked.",
-    story: [
-      "Most of our customers who buy a boat also park a car twenty feet from it. The Marin Quay covers both: 50 A marine shore power on one face, a 48 A J1772 on the other, and a 316 stainless shell that does not care what the tide does.",
-      "The light on top is not decoration. It is the only thing you can find at 11 p.m. when the dock lights are out and you are carrying a cooler.",
-    ],
-    features: [
-      "50 A / 125-250 V marine shore power outlet",
-      "48 A J1772 port on the reverse face",
-      "316 stainless shell, salt-spray tested 2,000 h",
-      "Dusk-to-dawn masthead light",
-      "GFCI and ELCI protection on both circuits",
-    ],
-    specs: {
-      "Marine output": "50 A / 125-250 V",
-      "Vehicle output": "11.5 kW / 48 A",
-      Connector: "SAE J1772 + 50 A locking",
-      Shell: "316 stainless",
-      Protection: "GFCI + ELCI, 30 mA",
-      Mounting: "Dock or piling",
-      Height: "44 in",
-      Warranty: "5 years",
-    },
-    art: "dock-pedestal",
-    rating: 4.9,
-    reviews: 88,
-    inStock: true,
-    incentive: {
-      productType: "ev_charger",
-      manufacturer: "cape",
-      modelNumber: "CP-MRN-Q48",
-      amperage: 48,
-      kilowatts: 11.5,
-      networked: true,
-      energyStar: false,
-      installRequired: true,
-      leapDeviceId: "3b964542-738d-4645-90e6-60347ce9313a",
-      deviceLabel: "Tesla Universal Wall Connector (Level 2, networked)",
-    },
-  },
 
-  // ── Foils ──────────────────────────────────────────────────────────────────
-  {
-    slug: "ecume-52",
-    name: "Écume",
-    designator: "5'2\"",
-    category: "foils",
-    price: 6400,
-    badge: "Flies in 8 seconds",
-    tagline: "Carbon efoil, 40 minutes up, 24 mph if you insist.",
-    blurb:
-      "The small one. Loose, quick to lift, and unforgiving in the way that makes you better by Thursday.",
-    story: [
-      "Écume is French for the foam that a wave leaves behind. It is the last thing you see of this board once it is up on the wing.",
-      "Five foot two, 42 litres, full prepreg carbon. It lifts at eight knots and holds a carve like something with an edge. The 1,100 sq cm front wing ships as standard; swap to the 800 if you want to be honest with yourself about how good you are.",
-      "The battery is a 2.2 kWh pack that takes 90 minutes on any 15 A outlet, or 40 minutes off a cape wall unit if you are between sessions and the light is still good.",
-    ],
-    features: [
-      "Full prepreg carbon board and mast",
-      "2.2 kWh pack, 40 min at cruise",
-      "Lifts at 8 knots, tops out at 24 mph",
-      "1,100 sq cm front wing included",
-      "Silent below 15 mph, near-silent above",
-    ],
-    specs: {
-      Length: "5 ft 2 in",
-      Volume: "42 L",
-      Weight: "62 lb rigged",
-      Battery: "2.2 kWh, swappable",
-      "Ride time": "40 min at cruise",
-      "Top speed": "24 mph",
-      "Charge time": "90 min standard, 40 min fast",
-      Warranty: "2 years, 1 year on the pack",
-    },
-    art: "efoil",
-    rating: 4.9,
-    reviews: 214,
-    inStock: true,
-  },
-  {
-    slug: "houle-60",
-    name: "Houle",
-    designator: "6'0\"",
-    category: "foils",
-    price: 6900,
-    tagline: "Bigger, mellower, an hour in the air.",
-    blurb:
-      "The board you hand to a friend who has never done this. Stable on the knees, forgiving on the first flight, still fun on the hundredth.",
-    story: [
-      "Houle means swell. The 6'0\" runs 68 litres and a wider tail, which translates to a board that gets up early and stays flat while you work out what your back foot is for.",
-      "It carries the 3.1 kWh pack, which is an hour of flying and enough left over to get back to the beach against a headwind. Most people buy this one, learn on it, and then never sell it.",
-    ],
-    features: [
-      "68 L, wide tail, stands up under a beginner",
-      "3.1 kWh pack, 60 min at cruise",
-      "1,600 sq cm high-lift wing included",
-      "Soft deck pad, no wax, no traction tape",
-      "Beginner speed limiter in the remote",
-    ],
-    specs: {
-      Length: "6 ft 0 in",
-      Volume: "68 L",
-      Weight: "71 lb rigged",
-      Battery: "3.1 kWh, swappable",
-      "Ride time": "60 min at cruise",
-      "Top speed": "21 mph",
-      "Charge time": "2 h standard, 55 min fast",
-      Warranty: "2 years, 1 year on the pack",
-    },
-    art: "efoil-big",
-    rating: 4.8,
-    reviews: 331,
-    inStock: true,
-  },
-  {
-    slug: "ressac",
-    name: "Ressac",
-    category: "foils",
-    price: 4800,
-    tagline: "Jet drive, no foil, all shorebreak.",
-    blurb:
-      "For people who want to surf the days when there is nothing to surf. Sits on the water, not above it, and turns like a board should.",
-    story: [
-      "Ressac is the water that comes back off a seawall. Fitting, because this is the board for the messy inside section that a foil hates.",
-      "Jet drive, no exposed prop, no mast to fall on. You can ride it in two feet of water and hand it to a fourteen-year-old. It is the least serious thing we make and the one that leaves the rack most weekends.",
-    ],
-    features: [
-      "Ducted jet drive, no exposed prop",
-      "Rides in 18 in of water",
-      "1.9 kWh pack, 35 min hard riding",
-      "EVA deck, no wax",
-      "Floats and self-rights when you fall",
-    ],
-    specs: {
-      Length: "5 ft 6 in",
-      Volume: "58 L",
-      Weight: "54 lb",
-      Battery: "1.9 kWh, swappable",
-      "Ride time": "35 min",
-      "Top speed": "32 mph",
-      "Charge time": "75 min",
-      Warranty: "2 years",
-    },
-    art: "jetboard",
-    rating: 4.6,
-    reviews: 402,
-    inStock: true,
-  },
-
-  // ── Craft ──────────────────────────────────────────────────────────────────
-  {
-    slug: "calanque-30",
-    name: "Calanque",
-    designator: "30",
-    category: "craft",
-    price: 148000,
-    deposit: 5000,
-    badge: "Built to order",
-    tagline: "A 30 ft electric day cat with shade and a swim ladder.",
-    blurb:
-      "Two hulls, twin 60 kW pods, and a hardtop that keeps eight people out of the sun. Six hours at cruise, silent the whole way.",
-    story: [
-      "The calanques are the limestone inlets between Marseille and Cassis, which is where this boat was drawn and where it still spends most of its testing. They are narrow, deep, and completely still, and a diesel in one is an act of vandalism.",
-      "Twin 60 kW pods on a 210 kWh pack give six hours at 8 knots or ninety minutes at 18. The hardtop carries 3.4 kW of solar, which in July is most of what you need to sit at anchor all day with the fridge running.",
-      "Every hull is laid up to order. Deposit reserves a build slot; the balance is due at splash. Current lead time is eleven months.",
-    ],
-    features: [
-      "Twin 60 kW electric pods",
-      "210 kWh pack, 6 h at 8 knots",
-      "3.4 kW solar hardtop",
-      "Seats 12, sleeps 4 in the hulls",
-      "Charges from a Marin Quay in 9 hours",
-    ],
-    specs: {
-      Length: "30 ft 2 in",
-      Beam: "15 ft 1 in",
-      Draft: "2 ft 4 in",
-      Propulsion: "2 × 60 kW pods",
-      Battery: "210 kWh LFP",
-      Range: "48 nm at 8 knots",
-      "Top speed": "22 knots",
-      "Lead time": "11 months",
-    },
-    art: "catamaran",
-    rating: 5.0,
-    reviews: 12,
-    inStock: true,
-  },
-  {
-    slug: "rade-22",
-    name: "Rade",
-    designator: "22",
-    category: "craft",
-    price: 96000,
-    deposit: 5000,
-    tagline: "A mahogany runabout that does not wake the harbour.",
-    blurb:
-      "Twenty-two feet of cold-moulded mahogany over a 120 kW electric drive. Wraparound screen, bench seat, no engine note to shout over.",
-    story: [
-      "There is a specific kind of boat that made the Côte d'Azur look the way it looks in every photograph from 1962: varnished, low, fast, and loud. We kept three of those four.",
-      "Cold-moulded mahogany on an epoxy core, twelve coats of varnish, and a 120 kW drive turning a single prop. It gets to 32 knots and it does it without a single person on the beach looking up.",
-      "Deposit reserves a hull. Colour, transom name, and upholstery are chosen at the six-month mark.",
-    ],
-    features: [
-      "Cold-moulded mahogany, 12 coats",
-      "120 kW single drive, 32 knots",
-      "88 kWh pack, 3 h at cruise",
-      "Wraparound screen, bench seat for 6",
-      "Charges overnight from a Marin Quay",
-    ],
-    specs: {
-      Length: "22 ft 4 in",
-      Beam: "7 ft 6 in",
-      Draft: "1 ft 9 in",
-      Propulsion: "120 kW single drive",
-      Battery: "88 kWh LFP",
-      Range: "34 nm at cruise",
-      "Top speed": "32 knots",
-      "Lead time": "8 months",
-    },
-    art: "runabout",
-    rating: 5.0,
-    reviews: 9,
-    inStock: true,
-  },
-
-  // ── Kit ────────────────────────────────────────────────────────────────────
+  // ── Accessories ────────────────────────────────────────────────────────────
   {
     slug: "line-25",
     name: "Line",
     designator: "25",
-    category: "kit",
+    category: "accessories",
     price: 149,
     tagline: "25 ft of cable that stays soft in February.",
     blurb: "Cold-flex J1772 extension, rated to −40 °F, with a jacket that does not go to memory.",
@@ -583,13 +392,13 @@ export const PRODUCTS: Product[] = [
   {
     slug: "cleat-mount",
     name: "Cleat Mount",
-    category: "kit",
+    category: "accessories",
     price: 89,
     tagline: "Cast aluminium. Holds a cable like a dock cleat.",
     blurb:
       "A wall hanger shaped like the thing it was named after, cast in aluminium and finished the same anodised grey as the chargers.",
     story: [
-      "Cable on the floor is how cable gets run over. The Cleat Mount takes a full 25 ft coil, mounts to studs or masonry, and looks like it belongs on a dock rather than in a hardware aisle.",
+      "Cable on the floor is how cable gets run over. The Cleat Mount takes a full 25 ft coil, mounts to studs or masonry, and looks like it belongs on the garage wall rather than in a hardware aisle.",
     ],
     features: [
       "Cast aluminium, anodised",
@@ -610,84 +419,135 @@ export const PRODUCTS: Product[] = [
     inStock: true,
   },
   {
-    slug: "dry-sack-30",
-    name: "Dry Sack",
-    designator: "30 L",
-    category: "kit",
-    price: 110,
-    tagline: "Roll top, welded seams, faded on purpose.",
-    blurb: "Thirty litres of dry, in a sailcloth that goes chalky in the sun and looks better for it.",
+    slug: "headland-post",
+    name: "Headland Post",
+    category: "accessories",
+    price: 429,
+    tagline: "A driveway pedestal for any cape wall unit.",
+    blurb:
+      "Powder-coated steel post with a conduit channel, a cable hook, and a light that comes on at dusk. For the house where the garage is full of everything except a car.",
     story: [
-      "Recycled sailcloth, welded seams, a roll top that actually seals, and a shoulder strap that can be shortened one-handed while you are holding something else.",
-      "The colour is not fast. That is the point. By the end of a season it will be a paler version of whatever you bought, and it will look like it belongs to you.",
+      "Not every charger gets a wall. The Headland Post puts one at the end of the driveway, at the kerb, or beside a carport, with the feed run up through the base so nothing is exposed.",
+      "The light on top is not decoration. It is the only thing you can find at 11 p.m. when the porch light is off and you are carrying the groceries.",
     ],
     features: [
-      "30 L, fully welded seams",
-      "Recycled sailcloth, sun-faded finish",
-      "One-handed strap adjust",
-      "Floats when sealed, even loaded",
+      "Fits Mistral, Tramontane, and Marin",
+      "Internal conduit channel, 1 in",
+      "Dusk-to-dawn cap light",
+      "Cable hook and connector holster",
+      "Concrete anchor kit included",
     ],
     specs: {
-      Volume: "30 L",
-      Material: "Recycled polyester sailcloth",
-      Closure: "Roll top, 3 folds",
-      Weight: "1.4 lb",
+      Material: "Powder-coated steel",
+      Height: "48 in",
+      Base: "10 × 10 in, four-bolt",
+      Conduit: "1 in internal",
+      Light: "2 W LED, photocell",
       Warranty: "5 years",
     },
-    art: "drysack",
-    rating: 4.6,
-    reviews: 507,
+    art: "post",
+    rating: 4.7,
+    reviews: 131,
     inStock: true,
   },
   {
-    slug: "board-sock",
-    name: "Board Sock",
-    category: "kit",
-    price: 185,
-    tagline: "Padded, vented, sized for a foil.",
+    slug: "ebb-load-manager",
+    name: "Ebb",
+    designator: "Load Manager",
+    category: "accessories",
+    price: 299,
+    badge: "Skip the panel upgrade",
+    tagline: "Backs the charger off when the house needs the power.",
     blurb:
-      "A travel bag cut for a board with a mast attached, with a separate sleeve for the wings so nothing scores the carbon.",
+      "Two clamps on your mains and a small box beside the panel. When the dryer, the oven, and the heat pump all run at once, the charger slows down instead of the breaker tripping.",
     story: [
-      "Foil boards do not fit in surfboard bags, which is a thing you learn once, expensively. This one is cut with a mast channel and a padded wing sleeve, and it vents so a wet board does not cook in a hot car.",
+      "A lot of older homes have a 100 A service and a quote for a panel upgrade that costs more than the car's first year of fuel. Most of the time that panel is nowhere near full.",
+      "Ebb watches the whole-home load a few times a second and tells any cape charger how much headroom is left. Overnight the charger gets everything; at six in the evening it takes what is spare.",
     ],
     features: [
-      "Cut for a board with mast attached",
-      "Padded wing sleeve",
-      "Reflective outer, vented base",
-      "Backpack straps stow flat",
+      "Two 200 A split-core clamps",
+      "Works with every cape charger",
+      "Adjusts charge rate in under two seconds",
+      "Whole-home usage in the cape app",
+      "Installs in the panel in about an hour",
     ],
     specs: {
-      Fits: "Up to 6 ft 2 in",
-      Padding: "10 mm closed cell",
-      Material: "600D recycled poly, reflective",
-      Weight: "5.2 lb",
+      Sensors: "2 × 200 A split-core CT",
+      Response: "Under 2 s",
+      Connectivity: "Wi-Fi, local link to charger",
+      Mounting: "Beside the panel",
+      Dimensions: "5.1 × 3.4 × 1.6 in",
       Warranty: "3 years",
     },
-    art: "boardsock",
-    rating: 4.7,
-    reviews: 163,
+    art: "load-meter",
+    rating: 4.6,
+    reviews: 288,
+    inStock: true,
+  },
+
+  // ── Install ────────────────────────────────────────────────────────────────
+  {
+    slug: "home-install",
+    name: "Home install",
+    designator: "Standard",
+    category: "install",
+    price: 799,
+    service: true,
+    badge: "Permit included",
+    tagline: "A licensed electrician, up to 30 ft from the panel.",
+    blurb:
+      "One visit to mount the charger, run the circuit, and file the permit. Most installs are done in an afternoon, and the inspection is on us.",
+    story: [
+      "The charger is the part you choose. The install is where people get stuck: finding an electrician, the permit, the inspection, the second visit when the inspector wants a label moved.",
+      "We book all of it. A licensed electrician calls within three days to schedule, arrives with the breaker and the wire, and leaves when the car is charging. If the utility asks for proof of install, the paperwork is already in your inbox.",
+    ],
+    features: [
+      "Licensed, insured electrician",
+      "Up to 30 ft of circuit from the panel",
+      "Breaker, wire, and conduit included",
+      "Permit and inspection handled",
+      "One-year workmanship guarantee",
+    ],
+    specs: {
+      Coverage: "41 states",
+      "Circuit run": "Up to 30 ft",
+      Includes: "Breaker, wire, conduit, permit",
+      Scheduling: "Call within three days",
+      Guarantee: "1 year workmanship",
+    },
+    art: "install",
+    rating: 4.9,
+    reviews: 2107,
     inStock: true,
   },
   {
-    slug: "sunfade-cap",
-    name: "Sunfade Cap",
-    category: "kit",
-    price: 38,
-    tagline: "Five panels, one season, permanent salt line.",
-    blurb: "Washed cotton twill, unstructured, with a brim that has already given up on being flat.",
+    slug: "site-visit",
+    name: "Site visit",
+    category: "install",
+    price: 149,
+    service: true,
+    tagline: "An electrician checks the panel and quotes the job.",
+    blurb:
+      "For long runs, detached garages, and panels that are older than you are. The fee comes off the install if you go ahead.",
     story: [
-      "We make one hat. It is unstructured cotton twill in a dye that will not survive July, which is the correct outcome. The brim is soft enough to fold into a pocket and stay folded.",
+      "Some installs are not standard: a charger at the far end of a driveway, a panel with no spare slots, a garage that is its own building. A site visit gets an electrician in front of it before anyone orders parts.",
+      "You get a fixed quote, a load calculation, and a straight answer on whether you need a panel upgrade or an Ebb. If you book the install, the visit is credited.",
     ],
-    features: ["Washed cotton twill, unstructured", "Soft folding brim", "Adjustable brass slide", "One size"],
+    features: [
+      "Panel and load calculation",
+      "Fixed quote for the install",
+      "Credited against the install",
+      "Tells you whether Ebb avoids an upgrade",
+    ],
     specs: {
-      Material: "Washed cotton twill",
-      Fit: "Unstructured, one size",
-      Closure: "Brass slide",
-      Care: "Cold wash, dry in the sun",
+      Coverage: "41 states",
+      Duration: "About 45 min",
+      Includes: "Load calculation, written quote",
+      Credit: "Full fee, against install",
     },
-    art: "cap",
-    rating: 4.9,
-    reviews: 1042,
+    art: "site-visit",
+    rating: 4.8,
+    reviews: 463,
     inStock: true,
   },
 ]
@@ -715,9 +575,4 @@ export function related(product: Product, count = 3): Product[] {
 /** Full display name, e.g. "Mistral 48". */
 export function fullName(p: Product): string {
   return p.designator ? `${p.name} ${p.designator}` : p.name
-}
-
-/** What you actually pay today: a deposit for build-to-order craft. */
-export function checkoutPrice(p: Product): number {
-  return p.deposit ?? p.price
 }

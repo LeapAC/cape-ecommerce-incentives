@@ -44,7 +44,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[slug
 
       <article className="mx-auto grid max-w-[88rem] gap-x-16 gap-y-12 px-5 py-10 sm:px-8 lg:grid-cols-[1.1fr_1fr] lg:py-14">
         {/* ── plate ─────────────────────────────────────────────────────── */}
-        <div className="lg:sticky lg:top-28 lg:self-start">
+        <div className="min-w-0 lg:sticky lg:top-28 lg:self-start">
           <div className="card deckle aspect-square">
             <ProductArt art={product.art} className="h-full w-full" />
           </div>
@@ -60,7 +60,8 @@ export default async function ProductPage({ params }: PageProps<"/products/[slug
         </div>
 
         {/* ── buy column ────────────────────────────────────────────────── */}
-        <div>
+        {/* min-w-0: a long program name must truncate, not widen the column. */}
+        <div className="min-w-0">
           <p className="label text-muted">{category.name}</p>
 
           <h1 className="display mt-4 text-[clamp(2.6rem,6vw,4.4rem)]">{fullName(product)}</h1>
@@ -95,12 +96,6 @@ export default async function ProductPage({ params }: PageProps<"/products/[slug
             )}
           </div>
 
-          {product.deposit && (
-            <p className="text-muted mt-2 text-sm">
-              {money(product.deposit)} reserves a build slot. Balance due at splash.
-            </p>
-          )}
-
           <div className="mt-7">
             <AddToCart product={product} />
           </div>
@@ -117,8 +112,9 @@ export default async function ProductPage({ params }: PageProps<"/products/[slug
 
           <p className="text-muted mt-5 flex items-center gap-2 text-sm">
             <Truck className="h-4 w-4 shrink-0" />
-            {product.price >= 250 ? "Free shipping" : "Flat $12 shipping"} · In stock, ships in two
-            days
+            {product.service
+              ? "Booked after you order · A licensed electrician calls within three days to schedule."
+              : `${product.price >= 250 ? "Free shipping" : "Flat $12 shipping"} · In stock, ships in two days`}
           </p>
 
           <ul className="mt-9 space-y-3 border-t pt-8">

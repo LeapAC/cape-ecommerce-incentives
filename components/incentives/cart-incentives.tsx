@@ -28,6 +28,8 @@ export function useCartDeviceLines(): DeviceLine[] {
  *
  * A single line, because the cart is not where anyone reads a program list. The
  * quantity is part of the lookup signature, so editing it re-runs the quote.
+ * It asks for no location of its own: it reads the committed one, in whichever
+ * mode the site is in, and renders nothing until there is one.
  */
 export function CartIncentiveLine() {
   const { drawerOpen } = useCart()
@@ -41,11 +43,11 @@ export function CartIncentiveLine() {
 
   return (
     <div
-      className="flex items-start gap-2.5 rounded-xl px-3.5 py-3"
+      className="flex items-start gap-2 rounded-lg px-3 py-2"
       style={{ background: "var(--shell-sunk)", border: "1px solid var(--line)" }}
     >
-      <Bolt className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "var(--sun)" }} />
-      <p className="text-ink-soft text-xs leading-snug">
+      <Bolt className="mt-px h-3.5 w-3.5 shrink-0" style={{ color: "var(--sun)" }} />
+      <p className="text-ink-soft text-[0.75rem] leading-snug">
         {installTotal > 0 && (
           <>
             <span className="text-ink font-semibold">{money(installTotal)}</span> back after

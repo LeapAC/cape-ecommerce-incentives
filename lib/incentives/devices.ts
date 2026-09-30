@@ -11,6 +11,27 @@ export interface DeviceLine {
 }
 
 /**
+ * Read device lines from an untrusted request body. Returns null when the shape
+ * is wrong, so the route can answer 400 instead of throwing. Lines with no
+ * device id are kept and skipped later, which is how unmapped products behave.
+ */
+export function parseDeviceLines(raw: unknown): DeviceLine[] | null {
+  if (raw === undefined) return []
+  if (!Array.isArray(raw)) return null
+  const lines: DeviceLine[] = []
+  for (const item of raw) {
+    if (!item || typeof item !== "object") return null
+    const { slug, deviceId, quantity } = item as Record<string, unknown>
+    if (typeof slug !== "string" || typeof deviceId !== "string") return null
+    if (quantity !== undefined && (typeof quantity !== "number" || !Number.isFinite(quantity))) {
+      return null
+    }
+    lines.push({ slug, deviceId, quantity: typeof quantity === "number" ? quantity : 1 })
+  }
+  return lines
+}
+
+/**
  * One entry per unit. Two of the same charger is two entries, or the totals come
  * back for a single unit and the shopper is quoted half of what they qualify for.
  *

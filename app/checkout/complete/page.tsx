@@ -162,35 +162,35 @@ function ClaimHandoff({ leap }: { leap: NonNullable<Order["leap"]> }) {
 
   return (
     <section
-      className="rounded-2xl p-6"
+      className="rounded-xl px-4 py-4 sm:px-5"
       style={{ background: "var(--shell-sunk)", border: "1px solid var(--line)" }}
     >
-      <div className="flex items-center gap-2.5">
-        <Bolt className="h-4 w-4 shrink-0" style={{ color: "var(--sun)" }} />
+      <div className="flex items-center gap-2">
+        <Bolt className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--sun)" }} />
         <h2 className="label">Your rebates</h2>
       </div>
 
       {(back > 0 || perYear > 0) && (
-        <div className="mt-4 flex flex-wrap items-end gap-x-8 gap-y-3">
+        <div className="mt-3 flex flex-wrap items-end gap-x-6 gap-y-2">
           {back > 0 && (
             <div>
-              <p className="tabular display text-[2.3rem] leading-none">{money(back)}</p>
-              <p className="text-ink-soft mt-1.5 text-sm">back after install</p>
+              <p className="tabular display text-[1.9rem] leading-none">{money(back)}</p>
+              <p className="text-ink-soft mt-1 text-xs">back after install</p>
             </div>
           )}
           {perYear > 0 && (
             <div>
-              <p className="tabular serif text-[1.3rem] leading-none">
+              <p className="tabular serif text-[1.1rem] leading-none">
                 +{money(perYear)}
-                <span className="text-muted text-[0.8rem]"> /yr</span>
+                <span className="text-muted text-[0.7rem]"> /yr</span>
               </p>
-              <p className="label-sm text-muted mt-1.5">from VPP</p>
+              <p className="label-sm text-muted mt-1">from VPP</p>
             </div>
           )}
         </div>
       )}
 
-      <p className="text-ink-soft mt-5 max-w-[58ch] text-sm leading-relaxed">
+      <p className="text-ink-soft mt-3 max-w-[58ch] text-[0.8125rem] leading-snug">
         You file these{leap.utilityName ? ` with ${leap.utilityName}` : ""}, through Leap. We have
         already passed over everything we know about your order, so what is left is the install
         date and anything the program asks to see. Leap will email you and track each claim through
@@ -203,23 +203,23 @@ function ClaimHandoff({ leap }: { leap: NonNullable<Order["leap"]> }) {
             href={leap.connect_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn btn-pop mt-5"
+            className="btn btn-pop btn-sm mt-3.5"
           >
             Start your claim
             <ArrowRight className="h-4 w-4" />
           </a>
-          <p className="text-muted mt-3 text-xs leading-snug">
+          <p className="text-muted mt-2 text-[0.6875rem] leading-snug">
             Bookmark this: the claim can only be completed once your charger is installed. If the
             link is not ready yet, give it a minute and reload.
           </p>
         </>
       ) : (
-        <p className="text-muted mt-5 text-xs leading-snug">
+        <p className="text-muted mt-3 text-[0.6875rem] leading-snug">
           We are still setting up your claim. Leap will email you a link shortly.
         </p>
       )}
 
-      <p className="text-muted mt-4 border-t pt-4 text-xs">
+      <p className="text-muted mt-3 border-t pt-3 text-[0.6875rem]">
         Reference <span className="tabular font-semibold">{leap.reference_id}</span>
       </p>
     </section>

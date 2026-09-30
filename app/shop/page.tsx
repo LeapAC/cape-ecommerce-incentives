@@ -1,11 +1,11 @@
 import type { Metadata } from "next"
-import { PRODUCTS } from "@/lib/catalog"
+import { CATEGORIES, PRODUCTS } from "@/lib/catalog"
 import { PageBanner } from "@/components/page-banner"
 import { ShopGrid } from "@/components/shop-grid"
 
 export const metadata: Metadata = {
   title: "Everything",
-  description: "Chargers, electric foils, quiet boats, and the kit that keeps them running.",
+  description: "EV chargers, the accessories that make them tidy, and the electricians who put them on the wall.",
 }
 
 export default function ShopPage() {
@@ -14,7 +14,7 @@ export default function ShopPage() {
       <PageBanner
         eyebrow="The whole shelf"
         title="Everything we make."
-        blurb="Fifteen things, four categories, one idea: the afternoon is better when nothing is shouting."
+        blurb={`${PRODUCTS.length} things, ${CATEGORIES.length} categories, one idea: the car should be full every morning without you thinking about it.`}
       />
       <div className="mx-auto max-w-[88rem] px-5 py-16 sm:px-8 lg:py-20">
         <ShopGrid products={PRODUCTS} />
