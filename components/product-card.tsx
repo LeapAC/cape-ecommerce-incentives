@@ -48,7 +48,6 @@ export function ProductCard({ product }: { product: Product }) {
             {fullName(product)}
           </h3>
           <span className="tabular ml-auto shrink-0 text-[0.95rem] font-semibold">
-            {product.deposit && <span className="text-muted text-xs font-normal">from </span>}
             {money(product.price)}
           </span>
         </div>

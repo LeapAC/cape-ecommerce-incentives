@@ -51,22 +51,3 @@ export function formatAddress(a: ShippingAddress): string {
   const street = [a.address_line_1, a.address_line_2].filter(Boolean).join(" ")
   return [street, a.city, [a.state, a.zip_code].filter(Boolean).join(" ")].filter(Boolean).join(", ")
 }
-
-/** "Bend, OR" — for copy that names where we are checking. */
-export function shortLocality(a: ShippingAddress): string {
-  return [a.city, a.state].filter(Boolean).join(", ")
-}
-
-/** A stable signature for (address) so callers can tell when it really changed. */
-export function addressSignature(a: ShippingAddress): string {
-  return [
-    a.address_line_1,
-    a.address_line_2,
-    a.city,
-    a.state,
-    a.zip_code,
-    a.country_code || "US",
-  ]
-    .map((v) => v.trim().toLowerCase())
-    .join("|")
-}

@@ -128,10 +128,3 @@ export const Info = (p: IconProps) => (
     <path d="M12 7.6v.2" />
   </Svg>
 )
-
-export const Anchor = (p: IconProps) => (
-  <Svg {...p}>
-    <circle cx="12" cy="5" r="2" />
-    <path d="M12 7v13M5 13a7 7 0 0 0 14 0M8 10H4M20 10h-4" />
-  </Svg>
-)

@@ -11,14 +11,14 @@ import { Reveal } from "@/components/reveal"
 import { ArrowRight, Bolt, Shield, Truck } from "@/components/icons"
 
 const MARQUEE = [
-  "Go quietly",
+  "Full by seven",
   "48 amps",
-  "No wake",
+  "Off-peak by default",
   "Sun's still up",
   "Free shipping over $250",
   "Built on the coast",
   "Five-year warranty",
-  "Charged by four",
+  "Rebates checked at your address",
 ]
 
 const PROMISES = [
@@ -36,9 +36,9 @@ const PROMISES = [
 ]
 
 export default function HomePage() {
-  const chargers = productsIn("shore-power").slice(0, 4)
-  const kit = productsIn("kit")
-  const cat = getProduct("calanque-30")!
+  const chargers = productsIn("chargers").slice(0, 4)
+  const accessories = productsIn("accessories")
+  const install = getProduct("home-install")!
 
   return (
     <>
@@ -48,24 +48,24 @@ export default function HomePage() {
         <Horizon horizon={56} />
 
         <div className="on-water relative mx-auto w-full max-w-[88rem] px-5 sm:px-8">
-          <p className="rise rise-1 label muted-water">Foils · Craft · Shore power</p>
+          <p className="rise rise-1 label muted-water">Chargers · Accessories · Install</p>
 
           <h1 className="rise rise-2 display mt-6 max-w-[13ch] text-[clamp(3.2rem,10.5vw,8.5rem)]">
-            The good part starts at four.
+            Plug in at dusk. Leave full.
           </h1>
 
           <p className="rise rise-3 muted-water mt-7 max-w-[46ch] text-lg leading-relaxed">
-            Chargers, electric foils, and quiet boats. All of it runs on current, so the only thing
-            you hear out there is water.
+            Home EV chargers named for the winds that cross our coast, and the cables, posts, and
+            electricians that go with them. Your utility may pay for part of it.
           </p>
 
           <div className="rise rise-4 mt-9 flex flex-wrap gap-3">
-            <Link href="/shop/shore-power" className="btn btn-pop">
-              Shop shore power
+            <Link href="/shop/chargers" className="btn btn-pop">
+              Shop chargers
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href="/shop/foils" className="btn btn-ghost">
-              See the foils
+            <Link href="/shop/install" className="btn btn-ghost">
+              Book an install
             </Link>
           </div>
         </div>
@@ -99,16 +99,16 @@ export default function HomePage() {
         <Reveal>
           <div className="flex flex-wrap items-end gap-6">
             <h2 className="display max-w-[12ch] text-[clamp(2.4rem,5.5vw,4.4rem)]">
-              Four things we make
+              Three things we do
             </h2>
             <p className="text-ink-soft mb-2 ml-auto max-w-[34ch] text-base">
-              One charger line, two boards, two boats, and the small stuff that keeps all of it
-              working.
+              Five chargers, the accessories that make them tidy, and licensed electricians to put
+              them on the wall.
             </p>
           </div>
         </Reveal>
 
-        <div className="mt-14 grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-14 grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
           {CATEGORIES.map((c, i) => {
             const lead = productsIn(c.id)[0]
             return (
@@ -138,12 +138,12 @@ export default function HomePage() {
       <section style={{ background: "var(--paper-warm)" }} className="chart-lines">
         <div className="mx-auto max-w-[88rem] px-5 py-24 sm:px-8 lg:py-32">
           <Reveal>
-            <p className="label text-muted">Shore power</p>
+            <p className="label text-muted">Chargers</p>
             <div className="mt-5 flex flex-wrap items-end gap-6">
               <h2 className="display max-w-[16ch] text-[clamp(2.4rem,5.5vw,4.4rem)]">
                 Start with the one that fits your panel.
               </h2>
-              <Link href="/shop/shore-power" className="btn btn-ghost btn-sm mb-2 ml-auto">
+              <Link href="/shop/chargers" className="btn btn-ghost btn-sm mb-2 ml-auto">
                 All chargers
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
@@ -174,7 +174,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ──────────────────────────  craft band  ────────────────────────── */}
+      {/* ─────────────────────────  install band  ───────────────────────── */}
       <section className="on-water relative overflow-hidden" style={{ background: "var(--deep)" }}>
         <div className="grain absolute inset-0">
           <div
@@ -189,28 +189,27 @@ export default function HomePage() {
 
         <div className="relative mx-auto grid max-w-[88rem] items-center gap-14 px-5 py-24 sm:px-8 lg:grid-cols-2 lg:py-36">
           <Reveal>
-            <p className="label muted-water">Craft · Built to order</p>
+            <p className="label muted-water">Install · Booked at checkout</p>
             <h2 className="display mt-6 max-w-[13ch] text-[clamp(2.6rem,6vw,5rem)]">
-              Two hulls. Six hours. No engine note.
+              One visit. Permit filed. Car charging.
             </h2>
             <p className="muted-water mt-7 max-w-[44ch] text-lg leading-relaxed">
-              The Calanque 30 was drawn in the coves between Marseille and Cassis, where a diesel is
-              an act of vandalism. Twin pods, a solar hardtop, and shade for eight.
+              A licensed electrician calls within three days to schedule, runs the circuit, and
+              handles the inspection. If your utility asks for proof of install, the paperwork is
+              already in your inbox.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-5">
-              <Link href={`/products/${cat.slug}`} className="btn btn-pop">
-                Reserve a build slot
+              <Link href={`/products/${install.slug}`} className="btn btn-pop">
+                Book an install
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <span className="label-sm muted-water">
-                {money(cat.price)} · {money(cat.deposit ?? 0)} deposit
-              </span>
+              <span className="label-sm muted-water">From {money(install.price)} · 41 states</span>
             </div>
           </Reveal>
 
           <Reveal delay={140}>
             <div className="deckle bobbing overflow-hidden rounded-2xl border border-white/10">
-              <ProductArt art="catamaran" className="aspect-[4/3] w-full" />
+              <ProductArt art="install" className="aspect-[4/3] w-full" />
             </div>
           </Reveal>
         </div>
@@ -218,25 +217,25 @@ export default function HomePage() {
         <WaveEdge fill="var(--paper)" className="relative" />
       </section>
 
-      {/* ────────────────────────────  kit rail  ────────────────────────── */}
+      {/* ────────────────────────  accessories rail  ────────────────────── */}
       <section className="mx-auto max-w-[88rem] px-5 py-24 sm:px-8 lg:py-32">
         <Reveal>
           <div className="flex flex-wrap items-end gap-6">
             <div>
-              <p className="label text-muted">Kit</p>
+              <p className="label text-muted">Accessories</p>
               <h2 className="display mt-5 max-w-[14ch] text-[clamp(2.4rem,5.5vw,4.4rem)]">
-                The unglamorous half of a good afternoon.
+                The small parts that keep it tidy.
               </h2>
             </div>
-            <Link href="/shop/kit" className="btn btn-ghost btn-sm mb-2 ml-auto">
-              All kit
+            <Link href="/shop/accessories" className="btn btn-ghost btn-sm mb-2 ml-auto">
+              All accessories
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </Reveal>
 
         <div className="mt-14 grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-4">
-          {kit.map((p, i) => (
+          {accessories.map((p, i) => (
             <Reveal key={p.slug} delay={i * 80}>
               <ProductCard product={p} />
             </Reveal>
@@ -250,7 +249,7 @@ export default function HomePage() {
         <div className="on-water relative mx-auto w-full max-w-[88rem] px-5 py-24 text-center sm:px-8">
           <Reveal>
             <h2 className="display mx-auto max-w-[16ch] text-[clamp(2.4rem,6vw,5rem)]">
-              {PRODUCTS.length} things. None of them make a sound.
+              {PRODUCTS.length} things, one idea: leave full every morning.
             </h2>
             <Link href="/shop" className="btn btn-pop mt-9">
               Shop everything

@@ -1,6 +1,6 @@
 # cape
 
-A demonstration storefront selling EV chargers, electric foils, and quiet boats. Built as the container for a Leap Incentives Gateway integration.
+A demonstration storefront for a home EV charging company: chargers, charging accessories, and installation. Built as the container for a Leap Incentives Gateway integration.
 
 Nothing here ships. The catalog, prices, reviews, and orders are fictional. The parts that matter are real: a working cart, a checkout that collects a full shipping address, and an order record with somewhere to put a rebate reference.
 
@@ -13,9 +13,24 @@ npm run dev
 
 The store runs at `http://localhost:3000`. Pass `-p 3311` to move it.
 
+```bash
+npm test
+```
+
+Runs the unit tests in `tests/` with Node's built-in test runner. They cover the lookup location model, the Google Places field mapping, and the display rules in the incentives model.
+
 ## Environment
 
 Copy `.env.example` to `.env.local` and fill in the values. `LEAP_API_KEY` is a partner credential: it is read only in server code, it is never prefixed with `NEXT_PUBLIC_`, and `.env*` is gitignored.
+
+| Variable | Scope | What it does |
+|---|---|---|
+| `LEAP_API_KEY` | Server | Partner key for the Leap lookup |
+| `LEAP_API_BASE_URL` | Server | Leap API host |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Browser, optional | Turns on Google Places address suggestions. A browser key: restrict it by HTTP referrer and to the Places API (New) |
+| `NEXT_PUBLIC_LOOKUP_MODE` | Browser, optional | `address` (default) or `zip`. The default lookup mode before any per-browser override |
+
+The two `NEXT_PUBLIC_` values are inlined at build time, so changing them needs a redeploy. The per-browser toggle below does not.
 
 ## Stack
 
@@ -32,6 +47,11 @@ Next.js 16 App Router, React 19, TypeScript, Tailwind CSS v4. No UI library, no 
 | `app/checkout/page.tsx` | Checkout |
 | `app/checkout/complete/page.tsx` | Order confirmation |
 | `lib/catalog.ts` | Products, categories, and per-product incentive attributes |
+| `lib/incentives/location.ts` | Committed lookup location, lookup mode, and their validators |
+| `lib/incentives/context.tsx` | Shipping address draft, committed location, and the lookup hook |
+| `lib/google-places.ts` | Loads the Maps JavaScript API and fetches Places suggestions |
+| `lib/places-address.ts` | Maps Places address components onto the Leap address fields |
+| `components/incentives/` | The incentives card, the cart line, and the address and ZIP entry |
 | `lib/cart.tsx` | Cart context, `localStorage` backed |
 | `lib/address.ts` | Address types and validators, safe on server and client |
 | `lib/use-address.ts` | Address persistence hook |
@@ -103,7 +123,37 @@ A failed lookup never blocks the page, the cart, or the order.
 
 ### Device mapping
 
-`lib/catalog.ts` carries `leapDeviceId` plus a readable `deviceLabel` on each charger. Ids come from the production device catalog and are **minted per environment**, so they will 422 against staging. A product with no mapping is skipped rather than looked up, which is the right outcome for foils, craft, and kit.
+`lib/catalog.ts` carries `leapDeviceId` plus a readable `deviceLabel` on each charger. Ids come from the production device catalog (`GET /beta/incentives/devices/search`) and are **minted per environment**, so they will 422 against staging. A product with no mapping is skipped rather than looked up, which is the right outcome for accessories and install services.
+
+### Where lookups run
+
+Every surface reads the same committed location:
+
+- **Product page**: the incentives card under the price, with its own address or ZIP entry.
+- **Cart drawer**: one line under the subtotal, only while the drawer is open. It asks for nothing and stays hidden until a location is committed.
+- **Checkout**: the compact card and the "After purchase" block in the order summary. The shipping address form commits the lookup address in address mode.
+- **Place order**: the durable lookup, always with the full shipping address, because Leap pins an application to the address it was created with.
+- **Confirmation**: no lookup. It shows the amounts recorded on the order.
+
+### Address entry commits, it never follows keystrokes
+
+A lookup keys on a committed location, never on a field being typed. A location is committed when the shopper picks a Places suggestion, or submits the form with Enter or **Check incentives**. Editing the checkout address after that leaves the preview where it was until the shopper commits again, and the button re-enables to say so.
+
+With `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` set, the street field suggests US addresses from Google Places, and picking one fills every field and commits. Without it, the form is manual and submit is the only way to commit.
+
+### ZIP mode
+
+Full address is the default. ZIP mode asks for one five-digit ZIP and sends Leap only `zip_code` and `country_code`, which production resolves to the ZIP centroid. Programs that depend on the exact street can differ from a full-address lookup.
+
+Switch a browser without a redeploy:
+
+| URL | Effect |
+|---|---|
+| `/?lookup=zip` | ZIP mode in this browser, saved in `localStorage` |
+| `/?lookup=address` | Full-address mode in this browser |
+| `/?lookup=default` | Clears the override and falls back to `NEXT_PUBLIC_LOOKUP_MODE` |
+
+The param works on any page and is removed from the address bar once read. Each mode keeps its own committed location, so switching back restores the last address or ZIP.
 
 ### Checking it works
 
@@ -112,5 +162,7 @@ These addresses exercise the different states against live programs:
 | Address | What it shows |
 |---|---|
 | 1437 Bannock St, Denver, CO 80202 | $550 after install plus $200/yr across three Xcel programs |
+| 55 Trinity Ave SW, Atlanta, GA 30303 | $200 after install across two Georgia Power programs |
+| ZIP 30303, in ZIP mode | The same two Georgia Power programs |
 | 1201 J St, Sacramento, CA 95814 | No offer, with the not-on-the-approved-list reason |
 | 1 City Hall Sq, Boston, MA 02201 | No programs in NSTAR territory |

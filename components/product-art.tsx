@@ -127,86 +127,25 @@ const ART: Record<ArtKey, React.ReactNode> = {
     </>
   ),
 
-  "dock-pedestal": (
+  /* Wall unit with a NACS handle in the holster and the J1772 adapter hung
+     beside it, so the plate says "both plugs" without a caption. */
+  "universal-charger": (
     <>
-      <rect x="168" y="152" width="64" height="150" rx="12" fill={INK} />
-      <rect x="156" y="134" width="88" height="22" rx="9" fill={INK} />
-      <path d="M176 134a24 24 0 0 1 48 0z" fill={SUN} />
-      <rect x="180" y="180" width="40" height="34" rx="9" fill={CREAM} opacity="0.88" />
-      <rect x="180" y="226" width="40" height="34" rx="9" fill={CREAM} opacity="0.5" />
-      <rect x="146" y="300" width="108" height="16" rx="6" fill={INK} />
+      <rect x="140" y="88" width="104" height="184" rx="40" fill={INK} />
+      <rect x="160" y="112" width="64" height="8" rx="4" fill={CREAM} opacity="0.3" />
+      <circle cx="192" cy="168" r="22" fill={CREAM} opacity="0.9" />
+      <circle cx="192" cy="168" r="9" fill={SUN} />
+      <rect x="172" y="212" width="40" height="30" rx="12" fill={CREAM} opacity="0.22" />
       <path
-        d="M232 196c30-16 56-6 56 12s-24 28-46 18"
+        d="M192 272c0 34 56 30 56 62"
         stroke={INK}
-        strokeWidth="11"
+        strokeWidth="13"
         fill="none"
         strokeLinecap="round"
       />
-    </>
-  ),
-
-  efoil: (
-    <g transform="rotate(-8 200 200)">
-      <path d="M92 156c0-16 44-26 108-26s108 10 108 26-44 26-108 26S92 172 92 156Z" fill={INK} />
-      <path d="M126 152c0-7 30-12 66-12s60 5 60 12-24 11-60 11-66-4-66-11Z" fill={CREAM} opacity="0.24" />
-      <path d="M190 180h20v72h-20z" fill={INK} />
-      <path d="M154 248h98v11h-98z" fill={INK} />
-      <path d="M116 262c24-17 62-17 84 0-21 12-63 12-84 0Z" fill={INK} />
-      <path d="M232 248c14-8 34-8 46 0-12 8-34 8-46 0Z" fill={INK} opacity="0.85" />
-      <circle cx="272" cy="152" r="9" fill={SUN} />
-    </g>
-  ),
-
-  "efoil-big": (
-    <g transform="rotate(-6 200 200)">
-      <path d="M78 158c0-19 48-31 122-31s122 12 122 31-48 31-122 31S78 177 78 158Z" fill={INK} />
-      <path d="M116 154c0-8 34-14 76-14s70 6 70 14-30 13-70 13-76-5-76-13Z" fill={CREAM} opacity="0.24" />
-      <path d="M188 188h24v70h-24z" fill={INK} />
-      <path d="M146 254h108v12H146z" fill={INK} />
-      <path d="M100 268c28-19 72-19 100 0-25 14-75 14-100 0Z" fill={INK} />
-      <path d="M236 254c16-9 40-9 54 0-14 9-38 9-54 0Z" fill={INK} opacity="0.85" />
-      <circle cx="284" cy="154" r="9" fill={SUN} />
-    </g>
-  ),
-
-  jetboard: (
-    <g transform="rotate(-13 200 200)">
-      <path
-        d="M62 202c32-36 100-58 156-58 60 0 106 24 106 58s-46 58-106 58c-56 0-124-22-156-58Z"
-        fill={INK}
-      />
-      <path
-        d="M132 202c18-18 56-30 92-30 38 0 64 13 64 30s-26 30-64 30c-36 0-74-12-92-30Z"
-        fill={CREAM}
-        opacity="0.2"
-      />
-      <circle cx="300" cy="202" r="17" fill={SUN} />
-      <path d="M282 236c14 6 26 6 36 0" stroke={CREAM} strokeWidth="6" opacity="0.35" fill="none" />
-    </g>
-  ),
-
-  /* Profile view. A catamaran drawn head-on reads as furniture, so the far
-     hull sits behind the near one and the hardtop gives it a deck line. */
-  catamaran: (
-    <>
-      <path d="M70 268c58-10 190-10 268-6l-8 20c-30 10-208 10-248 0Z" fill={INK} opacity="0.5" />
-      <path d="M50 256c70-12 214-12 296-6v22c0 22-28 34-86 34H134c-44 0-70-20-84-50Z" fill={INK} />
-      <path d="M130 212h142l18 38H112Z" fill={INK} />
-      <path d="M148 222h106l11 20H138Z" fill={CREAM} opacity="0.3" />
-      <rect x="120" y="174" width="10" height="38" fill={INK} />
-      <rect x="274" y="174" width="10" height="38" fill={INK} />
-      <path d="M102 164h206l12 16H90Z" fill={INK} />
-      <circle cx="200" cy="276" r="10" fill={SUN} />
-    </>
-  ),
-
-  runabout: (
-    <>
-      <path d="M44 250c66-30 176-42 300-36v54c0 24-24 36-76 36H150c-46 0-84-22-106-54Z" fill={INK} />
-      <path d="M62 262c58-26 162-36 282-30v13c-120-6-222 4-278 28Z" fill={CREAM} opacity="0.32" />
-      <path d="M196 214l16-28h44l8 27Z" fill={CREAM} opacity="0.5" />
-      <path d="M276 216h58v10h-58z" fill={CREAM} opacity="0.22" />
-      <circle cx="120" cy="240" r="10" fill={SUN} />
+      <rect x="230" y="326" width="36" height="26" rx="11" fill={INK} />
+      <rect x="264" y="196" width="30" height="44" rx="12" fill={INK} opacity="0.78" />
+      <circle cx="279" cy="210" r="5" fill={SUN} />
     </>
   ),
 
@@ -230,46 +169,65 @@ const ART: Record<ArtKey, React.ReactNode> = {
     </>
   ),
 
-  drysack: (
+  /* Driveway pedestal: a slim post, a charger head, and the dusk light. */
+  post: (
     <>
-      <path d="M132 178h136v106c0 24-20 38-68 38s-68-14-68-38z" fill={INK} />
-      <path d="M126 150h148l-10 28H136z" fill={INK} opacity="0.85" />
-      <rect x="142" y="136" width="116" height="18" rx="9" fill={INK} />
-      <path d="M148 210c42 13 62 13 104 0" stroke={CREAM} strokeWidth="9" opacity="0.24" fill="none" />
+      <rect x="182" y="132" width="36" height="172" rx="8" fill={INK} />
+      <path d="M176 132a24 24 0 0 1 48 0z" fill={SUN} />
+      <rect x="170" y="124" width="60" height="12" rx="6" fill={INK} />
+      <rect x="156" y="166" width="88" height="96" rx="20" fill={INK} />
+      <rect x="172" y="184" width="56" height="30" rx="8" fill={CREAM} opacity="0.88" />
+      <circle cx="200" cy="238" r="8" fill={SUN} />
+      <rect x="146" y="300" width="108" height="16" rx="6" fill={INK} />
       <path
-        d="M268 202c36 12 40 62 4 86"
+        d="M244 222c30-8 48 8 44 30s-26 30-48 20"
         stroke={INK}
-        strokeWidth="13"
+        strokeWidth="10"
         fill="none"
         strokeLinecap="round"
       />
-      <circle cx="200" cy="252" r="12" fill={SUN} />
     </>
   ),
 
-  boardsock: (
-    <g transform="rotate(-12 200 200)">
-      <path d="M64 200c0-23 26-40 62-40h148c34 0 62 17 62 40s-28 40-62 40H126c-36 0-62-17-62-40Z" fill={INK} />
-      <path d="M96 200h208" stroke={CREAM} strokeWidth="9" opacity="0.2" fill="none" />
-      <path d="M140 162v76M258 162v76" stroke={CREAM} strokeWidth="7" opacity="0.16" fill="none" />
-      <path
-        d="M150 240c22 42 100 42 122 0"
-        stroke={INK}
-        strokeWidth="13"
-        fill="none"
-        strokeLinecap="round"
-      />
-      <circle cx="306" cy="200" r="11" fill={SUN} />
-    </g>
+  /* Load manager: a small box with a readout, two clamps on the mains. */
+  "load-meter": (
+    <>
+      <rect x="150" y="104" width="100" height="132" rx="18" fill={INK} />
+      <rect x="166" y="122" width="68" height="40" rx="8" fill={CREAM} opacity="0.88" />
+      <path d="M174 150l14-12 12 8 16-16 12 10" stroke={SUN} strokeWidth="5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="200" cy="200" r="15" fill="none" stroke={SUN} strokeWidth="6" />
+      <path d="M178 236c-6 30-34 38-34 68" stroke={INK} strokeWidth="9" fill="none" strokeLinecap="round" />
+      <path d="M222 236c6 30 34 38 34 68" stroke={INK} strokeWidth="9" fill="none" strokeLinecap="round" />
+      <path d="M126 304a18 18 0 1 0 36 0" stroke={INK} strokeWidth="12" fill="none" strokeLinecap="round" />
+      <path d="M238 304a18 18 0 1 0 36 0" stroke={INK} strokeWidth="12" fill="none" strokeLinecap="round" />
+    </>
   ),
 
-  cap: (
+  /* Install: a house front with the charger already on the wall. */
+  install: (
     <>
-      <path d="M128 218c0-46 32-82 72-82s72 36 72 82z" fill={INK} />
-      <path d="M272 202c36 6 56 18 56 30H124c0-10 6-16 16-16h132z" fill={INK} opacity="0.88" />
-      <circle cx="200" cy="140" r="8" fill={SUN} />
-      <path d="M200 144v74" stroke={CREAM} strokeWidth="5" opacity="0.2" fill="none" />
-      <path d="M168 158c-10 20-14 40-14 60" stroke={CREAM} strokeWidth="5" opacity="0.14" fill="none" />
+      <path d="M96 196 200 112l104 84v112H96Z" fill={INK} />
+      <path d="M82 202 200 106l118 96" stroke={INK} strokeWidth="14" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="124" y="226" width="62" height="82" rx="6" fill={CREAM} opacity="0.22" />
+      <rect x="222" y="214" width="48" height="66" rx="14" fill={CREAM} opacity="0.9" />
+      <path d="M248 228l-10 18h12l-4 16 14-22h-12l4-12z" fill={SUN} />
+      <path d="M246 280c0 18-16 22-16 28" stroke={CREAM} strokeWidth="6" fill="none" strokeLinecap="round" opacity="0.6" />
+    </>
+  ),
+
+  /* Site visit: the panel door open, breakers in two columns, one lit. */
+  "site-visit": (
+    <>
+      <rect x="138" y="96" width="124" height="200" rx="14" fill={INK} />
+      <path d="M138 110 96 124v158l42 14Z" fill={INK} opacity="0.6" />
+      {[0, 1, 2, 3, 4].map((i) => (
+        <g key={i}>
+          <rect x="156" y={118 + i * 32} width="38" height="18" rx="5" fill={CREAM} opacity={i === 2 ? 0.9 : 0.3} />
+          <rect x="206" y={118 + i * 32} width="38" height="18" rx="5" fill={CREAM} opacity="0.3" />
+        </g>
+      ))}
+      <circle cx="175" cy="191" r="5" fill={SUN} />
+      <rect x="182" y="300" width="36" height="22" rx="7" fill={INK} opacity="0.72" />
     </>
   ),
 }

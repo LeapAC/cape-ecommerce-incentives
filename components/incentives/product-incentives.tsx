@@ -8,7 +8,7 @@ import { IncentivePanel } from "./incentive-panel"
  * Placement 1 of 3, on the product page: awareness.
  *
  * Products with no Leap mapping render nothing at all rather than an empty
- * card, which is the right outcome for foils, craft, and kit.
+ * card, which is the right outcome for accessories and install services.
  */
 export function ProductIncentives({ slug, deviceId }: { slug: string; deviceId?: string }) {
   const lines = useMemo(

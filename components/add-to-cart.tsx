@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { checkoutPrice, fullName, type Product } from "@/lib/catalog"
+import { fullName, type Product } from "@/lib/catalog"
 import { useCart, type CartLine } from "@/lib/cart"
 import { money } from "@/lib/format"
 import { Check, Minus, Plus } from "./icons"
@@ -10,9 +10,7 @@ function toLine(p: Product): Omit<CartLine, "quantity"> {
   return {
     slug: p.slug,
     name: fullName(p),
-    price: checkoutPrice(p),
-    listPrice: p.price,
-    isDeposit: Boolean(p.deposit),
+    price: p.price,
     category: p.category,
     art: p.art,
     incentive: p.incentive,
@@ -58,8 +56,8 @@ export function AddToCart({ product }: { product: Product }) {
           <>
             <Check className="h-4 w-4" /> In the cart
           </>
-        ) : product.deposit ? (
-          <>Reserve · {money(product.deposit)} deposit</>
+        ) : product.service ? (
+          <>Book · {money(product.price * qty)}</>
         ) : (
           <>Add to cart · {money(product.price * qty)}</>
         )}
@@ -93,7 +91,7 @@ export function QuickAdd({ product }: { product: Product }) {
         </>
       ) : (
         <>
-          <Plus className="h-3.5 w-3.5" /> {product.deposit ? "Reserve" : "Add"}
+          <Plus className="h-3.5 w-3.5" /> {product.service ? "Book" : "Add"}
         </>
       )}
     </button>

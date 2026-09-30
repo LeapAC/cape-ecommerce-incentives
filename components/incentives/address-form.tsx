@@ -1,33 +1,42 @@
 "use client"
 
 import { useState } from "react"
-import { formatAddress, isAddressComplete } from "@/lib/address"
 import { useIncentives } from "@/lib/incentives/context"
+import {
+  isPostalComplete,
+  isValidZip,
+  locationLine,
+  postalFrom,
+  type PostalAddress,
+} from "@/lib/incentives/location"
 import { Pencil } from "@/components/icons"
+import { AddressAutocomplete } from "./address-autocomplete"
 
-const STATES = [
+export const STATES = [
   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME",
   "MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA",
   "RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC",
 ]
 
 /**
- * Address entry for the product page.
+ * Location entry inside the incentives card, in whichever mode the site is in.
  *
- * Programs are set by the utility serving the address, and Leap geocodes to find
- * it, so a ZIP alone will not resolve. Once complete the form collapses to a
- * single line with a Change control rather than sitting open and filled.
+ * Programs are set by the utility serving the address. In address mode Leap
+ * geocodes the full address; in ZIP mode it resolves the ZIP centroid.
+ *
+ * Nothing typed here runs a lookup. The form keeps its own draft and commits on
+ * a picked suggestion or a submit, so a half-typed street never reaches Leap.
+ * Once committed the form collapses to one line with a Change control.
  */
 export function AddressForm() {
-  const { address, setField, addressReady } = useIncentives()
-  const complete = isAddressComplete(address)
+  const { lookupMode, location, addressReady } = useIncentives()
   const [editing, setEditing] = useState(false)
 
-  if (complete && !editing) {
+  if (location && !editing) {
     return (
       <div className="flex items-center gap-3">
-        <span className="text-ink-soft min-w-0 flex-1 truncate text-sm">
-          {formatAddress(address)}
+        <span className="text-ink-soft min-w-0 flex-1 truncate text-[0.8125rem]">
+          {locationLine(location)}
         </span>
         <button
           type="button"
@@ -41,32 +50,99 @@ export function AddressForm() {
     )
   }
 
+  const done = () => setEditing(false)
+  // Keyed on readiness so the draft reseeds once stored values have loaded.
+  const key = addressReady ? "ready" : "loading"
+  return lookupMode === "zip" ? (
+    <ZipEntry key={key} disabled={!addressReady} onCommitted={done} />
+  ) : (
+    <AddressEntry key={key} disabled={!addressReady} onCommitted={done} />
+  )
+}
+
+function ZipEntry({ disabled, onCommitted }: { disabled: boolean; onCommitted: () => void }) {
+  const { location, commitZip } = useIncentives()
+  const [zip, setZip] = useState(location?.kind === "zip" ? location.zip_code : "")
+
   return (
-    <div className="grid gap-2.5">
+    <form
+      className="flex gap-2"
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (commitZip(zip)) onCommitted()
+      }}
+    >
       <input
-        className="field"
+        className="field field-sm min-w-0 flex-1"
+        placeholder="ZIP"
+        inputMode="numeric"
+        maxLength={5}
+        autoComplete="postal-code"
+        value={zip}
+        onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 5))}
+        disabled={disabled}
+        aria-label="ZIP code"
+      />
+      <button
+        type="submit"
+        className="btn btn-ink btn-sm shrink-0"
+        disabled={disabled || !isValidZip(zip)}
+      >
+        Check incentives
+      </button>
+    </form>
+  )
+}
+
+function AddressEntry({ disabled, onCommitted }: { disabled: boolean; onCommitted: () => void }) {
+  const { address, location, commitAddress } = useIncentives()
+  // Seed from the committed location, else from whatever checkout already holds.
+  const [draft, setDraft] = useState<PostalAddress>(() =>
+    postalFrom(location?.kind === "address" ? location : address),
+  )
+  const set = (field: keyof PostalAddress, value: string) =>
+    setDraft((d) => ({ ...d, [field]: value }))
+
+  const complete = isPostalComplete(draft)
+
+  return (
+    <form
+      className="grid grid-cols-1 gap-2"
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (commitAddress(draft)) onCommitted()
+      }}
+    >
+      <AddressAutocomplete
+        className="field field-sm"
         placeholder="Street address"
         autoComplete="address-line1"
-        value={address.address_line_1}
-        onChange={(e) => setField("address_line_1", e.target.value)}
-        disabled={!addressReady}
+        value={draft.address_line_1}
+        onChange={(v) => set("address_line_1", v)}
+        onPick={(picked) => {
+          // A pick with every field commits at once. One missing a part (no
+          // street number, say) fills the form so the shopper can finish it.
+          if (commitAddress(picked)) onCommitted()
+          else setDraft(picked)
+        }}
+        disabled={disabled}
         aria-label="Street address"
       />
-      <div className="grid grid-cols-[1.5fr_0.7fr_0.9fr] gap-2.5">
+      <div className="grid grid-cols-[1.5fr_0.7fr_0.9fr] gap-2">
         <input
-          className="field"
+          className="field field-sm"
           placeholder="City"
           autoComplete="address-level2"
-          value={address.city}
-          onChange={(e) => setField("city", e.target.value)}
-          disabled={!addressReady}
+          value={draft.city}
+          onChange={(e) => set("city", e.target.value)}
+          disabled={disabled}
           aria-label="City"
         />
         <select
-          className="field px-2"
-          value={address.state}
-          onChange={(e) => setField("state", e.target.value)}
-          disabled={!addressReady}
+          className="field field-sm px-2"
+          value={draft.state}
+          onChange={(e) => set("state", e.target.value)}
+          disabled={disabled}
           aria-label="State"
         >
           <option value="">St</option>
@@ -77,26 +153,24 @@ export function AddressForm() {
           ))}
         </select>
         <input
-          className="field"
+          className="field field-sm"
           placeholder="ZIP"
           inputMode="numeric"
           maxLength={5}
           autoComplete="postal-code"
-          value={address.zip_code}
-          onChange={(e) => setField("zip_code", e.target.value.replace(/\D/g, "").slice(0, 5))}
-          disabled={!addressReady}
+          value={draft.zip_code}
+          onChange={(e) => set("zip_code", e.target.value.replace(/\D/g, "").slice(0, 5))}
+          disabled={disabled}
           aria-label="ZIP code"
         />
       </div>
-      {complete && (
-        <button
-          type="button"
-          onClick={() => setEditing(false)}
-          className="btn btn-ink btn-sm justify-self-start"
-        >
-          Done
-        </button>
-      )}
-    </div>
+      <button
+        type="submit"
+        className="btn btn-ink btn-sm justify-self-start"
+        disabled={disabled || !complete}
+      >
+        Check incentives
+      </button>
+    </form>
   )
 }

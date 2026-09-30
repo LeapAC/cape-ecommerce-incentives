@@ -49,9 +49,18 @@ export interface CustomerDeviceRef {
   details?: Record<string, string>
 }
 
+/**
+ * ZIP-only request address. Production accepts a bare ZIP and resolves it to
+ * the ZIP centroid, so the utility is right and street-level programs are not.
+ */
+export interface LeapZipAddress {
+  zip_code: string
+  country_code?: string
+}
+
 export interface EligibilityRequest {
   reference_id: string
-  address: LeapAddress
+  address: LeapAddress | LeapZipAddress
   customer_devices: CustomerDeviceRef[]
   customer_classification: CustomerClassification
   /** Only true at checkout. connect_url is a working link only when this is true. */

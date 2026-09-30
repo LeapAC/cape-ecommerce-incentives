@@ -9,14 +9,24 @@ import {
   useRef,
   useState,
 } from "react"
-import {
-  addressSignature,
-  isAddressComplete,
-  shortLocality,
-  type ShippingAddress,
-} from "@/lib/address"
-import { useStoredAddress } from "@/lib/use-address"
+import { isAddressComplete, type ShippingAddress } from "@/lib/address"
+import { ADDRESS_STORAGE_KEY, useStoredAddress } from "@/lib/use-address"
 import { deviceSignature, type DeviceLine } from "./devices"
+import {
+  LOOKUP_MODE_PARAM,
+  LOOKUP_MODE_STORAGE_KEY,
+  addressLocation,
+  locationLabel,
+  locationSignature,
+  parseLookupMode,
+  parseStoredLocation,
+  postalFrom,
+  resolveLookupMode,
+  zipLocation,
+  type LookupLocation,
+  type LookupMode,
+  type PostalAddress,
+} from "./location"
 import type { IncentiveView } from "./model"
 
 export type QuoteState =
@@ -26,51 +36,178 @@ export type QuoteState =
   | { status: "error"; message: string; retryable: boolean }
 
 interface IncentivesApi {
+  /** The shipping address as typed. A draft: editing it never runs a lookup. */
   address: ShippingAddress
   setAddress: (a: ShippingAddress) => void
   setField: (field: keyof ShippingAddress, value: string) => void
   addressReady: boolean
   addressComplete: boolean
-  /** Session cache, keyed by address + device set. Program data changes, so it
-   *  never outlives the tab and is emptied whenever the address moves. */
+  /** How the site asks for a location: full address (default) or ZIP only. */
+  lookupMode: LookupMode
+  /** The committed location for the current mode. Lookups key on this alone. */
+  location: LookupLocation | null
+  /** Commit a full address: a picked suggestion or a submitted form. */
+  commitAddress: (a: Partial<PostalAddress>) => boolean
+  /** Commit a ZIP in ZIP mode. */
+  commitZip: (zip: string) => boolean
+  /** Session cache, keyed by location + device set. Program data changes, so it
+   *  never outlives the tab and is emptied whenever the location moves. */
   cache: Map<string, IncentiveView>
 }
 
 const IncentivesContext = createContext<IncentivesApi | null>(null)
 
+const LOCATION_STORAGE_KEY = "cape-lookup-location"
+
+interface Committed {
+  address: LookupLocation | null
+  zip: LookupLocation | null
+}
+
+function readStorage(key: string): string | null {
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function writeStorage(key: string, value: string | null) {
+  try {
+    if (value === null) localStorage.removeItem(key)
+    else localStorage.setItem(key, value)
+  } catch {
+    /* private mode; the in-memory value still applies */
+  }
+}
+
+/**
+ * The hidden demo toggle. `?lookup=zip` or `?lookup=address` pins the mode in
+ * this browser, `?lookup=default` clears it, and the param is then stripped so
+ * an audience never sees it. Otherwise the stored choice, then
+ * NEXT_PUBLIC_LOOKUP_MODE, then full address.
+ */
+function readLookupMode(): LookupMode {
+  try {
+    const url = new URL(window.location.href)
+    const param = url.searchParams.get(LOOKUP_MODE_PARAM)
+    if (param !== null) {
+      const chosen = parseLookupMode(param)
+      writeStorage(LOOKUP_MODE_STORAGE_KEY, chosen)
+      url.searchParams.delete(LOOKUP_MODE_PARAM)
+      window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash)
+    }
+  } catch {
+    /* fall through to the stored or default mode */
+  }
+  return resolveLookupMode(readStorage(LOOKUP_MODE_STORAGE_KEY), process.env.NEXT_PUBLIC_LOOKUP_MODE)
+}
+
+function readCommitted(): Committed {
+  const none: Committed = { address: null, zip: null }
+  try {
+    const raw = readStorage(LOCATION_STORAGE_KEY)
+    if (raw !== null) {
+      const parsed = JSON.parse(raw) as Partial<Record<keyof Committed, unknown>>
+      return { address: parseStoredLocation(parsed?.address), zip: parseStoredLocation(parsed?.zip) }
+    }
+    // Sessions from before commit-on-submit kept one live address. Adopt it
+    // once as committed, so an address someone already entered keeps working.
+    const legacy = readStorage(ADDRESS_STORAGE_KEY)
+    return legacy ? { ...none, address: addressLocation(JSON.parse(legacy)) } : none
+  } catch {
+    return none
+  }
+}
+
 export function IncentivesProvider({ children }: { children: React.ReactNode }) {
-  const { address, setAddress, setField, hydrated } = useStoredAddress()
+  const { address, setAddress, setField, hydrated: addressHydrated } = useStoredAddress()
   const cache = useRef(new Map<string, IncentiveView>()).current
-  const lastAddress = useRef<string | null>(null)
+  const lastLocation = useRef<string | null>(null)
 
-  const addrSig = addressSignature(address)
+  const [lookup, setLookup] = useState<{ mode: LookupMode; committed: Committed; hydrated: boolean }>({
+    mode: "address",
+    committed: { address: null, zip: null },
+    hydrated: false,
+  })
+  const { mode: lookupMode, committed, hydrated: lookupHydrated } = lookup
+  const setCommitted = useCallback(
+    (update: (c: Committed) => Committed) =>
+      setLookup((l) => ({ ...l, committed: update(l.committed) })),
+    [],
+  )
 
-  // A new address invalidates every cached result: they are address-specific,
+  // Hydrate once from storage, in a single update.
+  useEffect(() => {
+    setLookup({ mode: readLookupMode(), committed: readCommitted(), hydrated: true })
+  }, [])
+
+  useEffect(() => {
+    if (!lookupHydrated) return
+    writeStorage(LOCATION_STORAGE_KEY, JSON.stringify(committed))
+  }, [committed, lookupHydrated])
+
+  const commitAddress = useCallback(
+    (a: Partial<PostalAddress>) => {
+      const loc = addressLocation(a)
+      if (!loc) return false
+      setCommitted((c) => ({ ...c, address: loc }))
+      // The committed address is also where the order ships.
+      const postal = postalFrom(a)
+      setAddress({ ...address, ...postal })
+      return true
+    },
+    [address, setAddress, setCommitted],
+  )
+
+  const commitZip = useCallback((zip: string) => {
+    const loc = zipLocation(zip)
+    if (!loc) return false
+    setCommitted((c) => ({ ...c, zip: loc }))
+    return true
+  }, [setCommitted])
+
+  const location = lookupMode === "zip" ? committed.zip : committed.address
+  const locSig = locationSignature(location)
+
+  // A new location invalidates every cached result: they are location-specific,
   // and a stale one rendered under a new address is the worst failure here.
   //
-  // Deliberately does NOT touch the token. Child effects run before parent
-  // effects, so a consumer has already claimed its token by the time this runs;
-  // bumping here would invalidate the very request that was just started and
-  // every first lookup after an address change would be silently dropped.
-  // Superseding is already handled by the consumer: the signature changes, the
-  // effect cleanup aborts, and each request compares its own token on return.
+  // Deliberately does NOT touch any request token. Child effects run before
+  // parent effects, so a consumer has already claimed its token by the time
+  // this runs; bumping here would drop the first lookup after every commit.
   useEffect(() => {
-    if (lastAddress.current !== null && lastAddress.current !== addrSig) {
+    if (lastLocation.current !== null && lastLocation.current !== locSig) {
       cache.clear()
     }
-    lastAddress.current = addrSig
-  }, [addrSig, cache])
+    lastLocation.current = locSig
+  }, [locSig, cache])
 
   const value = useMemo<IncentivesApi>(
     () => ({
       address,
       setAddress,
       setField,
-      addressReady: hydrated,
+      addressReady: addressHydrated && lookupHydrated,
       addressComplete: isAddressComplete(address),
+      lookupMode,
+      location,
+      commitAddress,
+      commitZip,
       cache,
     }),
-    [address, setAddress, setField, hydrated, cache],
+    [
+      address,
+      setAddress,
+      setField,
+      addressHydrated,
+      lookupHydrated,
+      lookupMode,
+      location,
+      commitAddress,
+      commitZip,
+      cache,
+    ],
   )
 
   return <IncentivesContext.Provider value={value}>{children}</IncentivesContext.Provider>
@@ -82,20 +219,25 @@ export function useIncentives(): IncentivesApi {
   return ctx
 }
 
-const DEBOUNCE_MS = 500
+/**
+ * Coalesces rapid quantity clicks into one lookup. Address entry is already
+ * gated on commit, so this is not what stops per-keystroke lookups.
+ */
+const DEBOUNCE_MS = 300
 
 /**
- * Runs a lookup for a device set at the shared address.
+ * Runs a lookup for a device set at the committed location.
  *
- * Re-runs on a signature of address plus device set, so a quantity change
- * refreshes the numbers and a re-render does not. Never keys on "no result yet",
- * which would leave the cart stale after an edit.
+ * Re-runs on a signature of committed location plus device set, so a quantity
+ * change or a commit refreshes the numbers, and typing into an address field
+ * does not. Never keys on "no result yet", which would leave the cart stale
+ * after an edit.
  */
 export function useIncentiveQuote(
   lines: DeviceLine[],
   options: { mode?: "preview" | "checkout"; referenceId?: string; enabled?: boolean } = {},
 ): { state: QuoteState; retry: () => void } {
-  const { address, addressComplete, addressReady, cache } = useIncentives()
+  const { location, addressReady, cache } = useIncentives()
   const { mode = "preview", referenceId, enabled = true } = options
 
   const [state, setState] = useState<QuoteState>({ status: "idle" })
@@ -108,9 +250,9 @@ export function useIncentiveQuote(
    */
   const token = useRef(0)
 
-  const addrSig = addressSignature(address)
+  const locSig = locationSignature(location)
   const devSig = deviceSignature(lines)
-  const signature = `${addrSig}::${devSig}::${mode}`
+  const signature = `${locSig}::${devSig}::${mode}`
   const hasDevices = devSig.length > 0
 
   // Serialised so the effect depends on the values, not the array identity.
@@ -125,7 +267,7 @@ export function useIncentiveQuote(
 
   useEffect(() => {
     if (!enabled || !addressReady) return
-    if (!addressComplete || !hasDevices) {
+    if (!location || !hasDevices) {
       setState({ status: "idle" })
       return
     }
@@ -140,7 +282,7 @@ export function useIncentiveQuote(
     const controller = new AbortController()
     let cancelled = false
 
-    setState({ status: "loading", locality: shortLocality(address) })
+    setState({ status: "loading", locality: locationLabel(location) })
 
     const timer = setTimeout(async () => {
       try {
@@ -148,7 +290,7 @@ export function useIncentiveQuote(
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            address,
+            location,
             devices: JSON.parse(linesJson).map(
               ([slug, deviceId, quantity]: [string, string, number]) => ({
                 slug,
@@ -194,7 +336,7 @@ export function useIncentiveQuote(
       controller.abort()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signature, linesJson, enabled, addressReady, addressComplete, hasDevices, nonce])
+  }, [signature, linesJson, enabled, addressReady, hasDevices, nonce])
 
   return { state, retry }
 }

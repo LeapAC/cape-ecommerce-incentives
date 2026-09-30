@@ -93,9 +93,9 @@ export function CartDrawer() {
         <div className="thin-scroll flex-1 overflow-y-auto px-6">
           {lines.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-5 py-16 text-center">
-              <p className="wonk text-[1.6rem] leading-tight">Nothing aboard yet.</p>
+              <p className="wonk text-[1.6rem] leading-tight">Nothing plugged in yet.</p>
               <p className="text-muted max-w-[22ch] text-sm">
-                Chargers, boards, and one boat you should probably not buy today.
+                Chargers, cables, and an electrician when you want one.
               </p>
               <Link href="/shop" onClick={closeDrawer} className="btn btn-ink btn-sm mt-1">
                 Browse everything
@@ -126,12 +126,6 @@ export function CartDrawer() {
                         {money(line.price * line.quantity)}
                       </span>
                     </div>
-
-                    {line.isDeposit && (
-                      <p className="label-sm text-muted mt-1.5">
-                        Deposit · {money(line.listPrice)} total
-                      </p>
-                    )}
 
                     <div className="mt-3 flex items-center gap-3">
                       <div className="flex items-center rounded-full border">

@@ -25,11 +25,11 @@ const archivo = Archivo({
 
 export const metadata: Metadata = {
   title: {
-    default: "cape — electric craft and shore power",
+    default: "cape · home EV charging",
     template: "%s · cape",
   },
   description:
-    "Chargers, electric foils, and quiet boats for the long afternoon. A demonstration storefront.",
+    "Home EV chargers, accessories, and installation, with rebates checked at your address. A demonstration storefront.",
 }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

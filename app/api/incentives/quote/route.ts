@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { LeapApiError, lookupIncentives } from "@/lib/leap/client"
-import { missingAddressFields, type ShippingAddress } from "@/lib/address"
+import { parseStoredLocation, toLeapAddress, type LookupLocation } from "@/lib/incentives/location"
 import { emptyView, toIncentiveView, type IncentiveView } from "@/lib/incentives/model"
 import { toCustomerDevices, type DeviceLine } from "@/lib/incentives/devices"
 
@@ -15,7 +15,8 @@ export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 interface QuoteRequest {
-  address: Partial<ShippingAddress>
+  /** A committed location: a full address, or a ZIP in ZIP mode. */
+  location: LookupLocation
   devices: DeviceLine[]
   /**
    * "preview" is a throwaway browsing lookup: a fresh reference_id each time and
@@ -61,21 +62,28 @@ export async function POST(request: Request): Promise<NextResponse<QuoteResponse
     return fail("Malformed request body.", 400, false)
   }
 
-  // Validate before calling Leap, and name what is missing.
-  const address = body.address ?? {}
-  const missing = missingAddressFields(address)
-  if (missing.length > 0) {
-    return fail(`Missing required address fields: ${missing.join(", ")}.`, 400, false)
+  // Validate before calling Leap. A malformed or half-filled location is the
+  // caller's bug, never something to forward.
+  const location = parseStoredLocation(body.location)
+  if (!location) {
+    return fail("A full address or a five-digit ZIP is required.", 400, false)
+  }
+
+  const checkout = body.mode === "checkout"
+  // An application is pinned to its address, so it is only ever created from a
+  // full shipping address, never from a ZIP centroid.
+  if (checkout && location.kind !== "address") {
+    return fail("An order lookup needs the full shipping address.", 400, false)
   }
 
   const devices = toCustomerDevices(body.devices ?? [])
   if (devices.length === 0) {
     // Nothing in the basket maps to a catalog device. Not an error: this is the
-    // correct outcome for foils, craft, and kit, which have no Leap mapping.
+    // correct outcome for accessories and install services, which have no Leap
+    // mapping.
     return ok(emptyView(body.referenceId ?? "none"))
   }
 
-  const checkout = body.mode === "checkout"
   const referenceId =
     checkout && body.referenceId
       ? body.referenceId
@@ -84,14 +92,7 @@ export async function POST(request: Request): Promise<NextResponse<QuoteResponse
   try {
     const result = await lookupIncentives({
       reference_id: referenceId,
-      address: {
-        address_line_1: address.address_line_1!.trim(),
-        address_line_2: address.address_line_2?.trim() || undefined,
-        city: address.city!.trim(),
-        state: address.state!.trim().toUpperCase(),
-        zip_code: address.zip_code!.trim(),
-        country_code: (address.country_code || "US").toUpperCase(),
-      },
+      address: toLeapAddress(location),
       customer_devices: devices,
       customer_classification: "RESIDENTIAL",
       create_application: checkout,

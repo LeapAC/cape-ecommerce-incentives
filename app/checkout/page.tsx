@@ -5,8 +5,16 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { useCart } from "@/lib/cart"
 import { useIncentives, useIncentiveQuote } from "@/lib/incentives/context"
-import { isAddressComplete, type ShippingAddress } from "@/lib/address"
+import { isAddressComplete } from "@/lib/address"
+import {
+  addressLocation,
+  locationSignature,
+  postalFrom,
+  type LookupLocation,
+} from "@/lib/incentives/location"
 import { IncentivePanel } from "@/components/incentives/incentive-panel"
+import { AddressAutocomplete } from "@/components/incentives/address-autocomplete"
+import { STATES } from "@/components/incentives/address-form"
 import { useCartDeviceLines } from "@/components/incentives/cart-incentives"
 import { money, moneyExact } from "@/lib/format"
 import {
@@ -21,21 +29,26 @@ import { Horizon, WaveEdge } from "@/components/ocean/horizon"
 import { ProductArt } from "@/components/product-art"
 import { ArrowRight, Check, Minus, Plus } from "@/components/icons"
 
-const STATES = [
-  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME",
-  "MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA",
-  "RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC",
-]
-
 export default function CheckoutPage() {
   const { lines, subtotal, setQuantity, clear, hydrated } = useCart()
-  const { address, setField, addressReady } = useIncentives()
+  const { address, setAddress, setField, addressReady, lookupMode, location, commitAddress } =
+    useIncentives()
   const router = useRouter()
   const [placing, setPlacing] = useState(false)
 
   // Browsing preview: no application is created while the shopper is still
-  // typing. The durable lookup happens once, at order placement.
+  // deciding. The durable lookup happens once, at order placement.
+  //
+  // Typing the shipping address edits a draft and never runs a lookup. In
+  // address mode the preview moves only when the shopper picks a suggestion or
+  // submits the address; in ZIP mode it follows the ZIP in the incentives card.
   const deviceLines = useCartDeviceLines()
+  const draftLocation = addressLocation(address)
+  const canCheckAddress =
+    lookupMode === "address" &&
+    deviceLines.length > 0 &&
+    draftLocation !== null &&
+    locationSignature(draftLocation) !== locationSignature(location)
   const quote = useIncentiveQuote(deviceLines)
   const view = quote.state.status === "ready" ? quote.state.view : null
 
@@ -67,10 +80,13 @@ export default function CheckoutPage() {
     if (deviceLines.length > 0) {
       const referenceId = `cape-${id}`
       try {
+        // Always the full shipping address, in either mode: an application is
+        // pinned to the address it was created with.
+        const shipTo: LookupLocation = { kind: "address", ...postalFrom(address) }
         const res = await fetch("/api/incentives/quote", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ address, devices: deviceLines, mode: "checkout", referenceId }),
+          body: JSON.stringify({ location: shipTo, devices: deviceLines, mode: "checkout", referenceId }),
           cache: "no-store",
         })
         const body = await res.json()
@@ -113,7 +129,7 @@ export default function CheckoutPage() {
       ) : (
         <div className="mx-auto grid max-w-[88rem] gap-x-16 gap-y-12 px-5 py-16 sm:px-8 lg:grid-cols-[1.15fr_0.85fr] lg:py-20">
           {/* ── form ──────────────────────────────────────────────────── */}
-          <div className="space-y-12">
+          <div className="min-w-0 space-y-12">
             <Section n="1" title="Contact">
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field
@@ -139,14 +155,34 @@ export default function CheckoutPage() {
               title="Shipping address"
               note="Rebate programs are set by the utility that serves this address, so the full street address matters."
             >
-              <div className="grid gap-4">
-                <Field
-                  label="Street address"
-                  value={address.address_line_1}
-                  onChange={(v) => setField("address_line_1", v)}
-                  autoComplete="address-line1"
-                  disabled={!addressReady}
-                />
+              <form
+                className="grid gap-4"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (canCheckAddress) commitAddress(address)
+                }}
+              >
+                <div>
+                  <label className="label-sm text-muted" htmlFor="street-address">
+                    Street address
+                  </label>
+                  <div className="mt-2">
+                    <AddressAutocomplete
+                      id="street-address"
+                      value={address.address_line_1}
+                      onChange={(v) => setField("address_line_1", v)}
+                      onPick={(picked) => {
+                        // A picked suggestion is a committed address in address
+                        // mode. In ZIP mode it only fills the shipping form.
+                        if (lookupMode !== "address" || !commitAddress(picked)) {
+                          setAddress({ ...address, ...picked })
+                        }
+                      }}
+                      autoComplete="address-line1"
+                      disabled={!addressReady}
+                    />
+                  </div>
+                </div>
                 <Field
                   label="Apartment, unit, suite"
                   optional
@@ -193,7 +229,16 @@ export default function CheckoutPage() {
                     disabled={!addressReady}
                   />
                 </div>
-              </div>
+                {lookupMode === "address" && deviceLines.length > 0 && (
+                  <button
+                    type="submit"
+                    className="btn btn-ghost btn-sm justify-self-start"
+                    disabled={!canCheckAddress}
+                  >
+                    Check incentives
+                  </button>
+                )}
+              </form>
             </Section>
 
             <Section n="3" title="Delivery">
@@ -204,7 +249,6 @@ export default function CheckoutPage() {
                   price={totals.shipping === 0 ? "Free" : money(totals.shipping)}
                   selected
                 />
-                <Choice title="White glove install" body="Licensed electrician, booked after you order" price="Quoted" />
               </div>
             </Section>
 
@@ -220,8 +264,8 @@ export default function CheckoutPage() {
           </div>
 
           {/* ── summary ───────────────────────────────────────────────── */}
-          <aside className="lg:sticky lg:top-28 lg:self-start">
-            <div className="card p-6">
+          <aside className="min-w-0 lg:sticky lg:top-28 lg:self-start">
+            <div className="card p-6" style={{ overflow: "visible" }}>
               <h2 className="display text-[1.8rem]">Order summary</h2>
 
               <ul className="mt-6 divide-y">
@@ -232,11 +276,6 @@ export default function CheckoutPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="serif text-[1rem] leading-tight">{line.name}</p>
-                      {line.isDeposit && (
-                        <p className="label-sm text-muted mt-1.5">
-                          Deposit · {money(line.listPrice)} total
-                        </p>
-                      )}
                       <div className="mt-2 flex items-center rounded-full border" style={{ width: "fit-content" }}>
                         <button
                           type="button"
@@ -291,11 +330,11 @@ export default function CheckoutPage() {
 
               {(backAfter > 0 || perYear > 0) && (
                 <div
-                  className="mt-4 rounded-xl p-4"
+                  className="mt-3 rounded-lg px-3 py-2.5"
                   style={{ background: "var(--shell-sunk)", border: "1px solid var(--line)" }}
                 >
-                  <p className="label text-muted">After purchase</p>
-                  <dl className="mt-3 space-y-2 text-sm">
+                  <p className="label-sm text-muted">After purchase</p>
+                  <dl className="mt-2 space-y-1.5 text-[0.8125rem]">
                     {backAfter > 0 && (
                       <Row label="Incentives back after install" value={money(backAfter)} />
                     )}
@@ -309,7 +348,7 @@ export default function CheckoutPage() {
                       <Row label="VPP earnings" value={`${money(perYear)} per year`} />
                     )}
                   </dl>
-                  <p className="text-muted mt-3 text-xs leading-snug">
+                  <p className="text-muted mt-2 text-[0.6875rem] leading-snug">
                     Paid by {view?.utilityName ?? "your utility"} after your charger is installed,
                     not deducted from today&rsquo;s total. You file the claim through Leap.
                   </p>
@@ -318,7 +357,7 @@ export default function CheckoutPage() {
 
               {/* Leap incentives placement 3 of 3: applied. */}
               {deviceLines.length > 0 && (
-                <div className="mt-5">
+                <div className="mt-3">
                   <IncentivePanel state={quote.state} retry={quote.retry} compact />
                 </div>
               )}
@@ -353,8 +392,8 @@ function EmptyCheckout() {
       <p className="text-muted mx-auto mt-4 max-w-[38ch]">
         Hard to check out with nothing in it. The chargers are the sensible place to start.
       </p>
-      <Link href="/shop/shore-power" className="btn btn-ink mt-8">
-        Shop shore power
+      <Link href="/shop/chargers" className="btn btn-ink mt-8">
+        Shop chargers
         <ArrowRight className="h-4 w-4" />
       </Link>
     </div>

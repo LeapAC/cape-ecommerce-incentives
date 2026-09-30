@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { EMPTY_ADDRESS, type ShippingAddress } from "./address"
 
-const STORAGE_KEY = "cape-address"
+export const ADDRESS_STORAGE_KEY = "cape-address"
 
 /**
  * Address persisted client-side for the session, so one entered on a product
@@ -15,7 +15,7 @@ export function useStoredAddress() {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY)
+      const raw = localStorage.getItem(ADDRESS_STORAGE_KEY)
       if (raw) setAddressState({ ...EMPTY_ADDRESS, ...(JSON.parse(raw) as ShippingAddress) })
     } catch {
       /* fall back to empty */
@@ -25,7 +25,7 @@ export function useStoredAddress() {
 
   const persist = (next: ShippingAddress) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      localStorage.setItem(ADDRESS_STORAGE_KEY, JSON.stringify(next))
     } catch {
       /* nothing useful to do here */
     }

@@ -10,16 +10,13 @@ import {
   useRef,
   useState,
 } from "react"
-import type { ArtKey, IncentiveAttributes } from "./catalog"
+import { getProduct, type ArtKey, type IncentiveAttributes } from "./catalog"
 
 export interface CartLine {
   slug: string
   name: string
-  /** Unit price actually charged today (deposit for build-to-order craft). */
+  /** Unit price charged today. */
   price: number
-  /** Sticker price, kept so the summary can say what the boat really costs. */
-  listPrice: number
-  isDeposit: boolean
   category: string
   art: ArtKey
   quantity: number
@@ -39,6 +36,19 @@ type CartAction =
   | { type: "hydrate"; lines: CartLine[] }
 
 const STORAGE_KEY = "cape-cart"
+
+/**
+ * Drops saved lines for products the catalog no longer carries, and refreshes
+ * the incentive mapping from the catalog so a stale device id is never sent.
+ */
+function currentLines(saved: CartLine[]): CartLine[] {
+  if (!Array.isArray(saved)) return []
+  return saved.flatMap((line) => {
+    const product = getProduct(line.slug)
+    if (!product) return []
+    return [{ ...line, art: product.art, incentive: product.incentive }]
+  })
+}
 
 function reducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
@@ -97,7 +107,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) dispatch({ type: "hydrate", lines: JSON.parse(raw) as CartLine[] })
+      if (raw) dispatch({ type: "hydrate", lines: currentLines(JSON.parse(raw) as CartLine[]) })
     } catch {
       /* corrupt or unavailable storage just means an empty cart */
     }
