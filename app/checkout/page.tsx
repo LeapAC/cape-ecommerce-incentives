@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { useCart } from "@/lib/cart"
 import { useIncentives, useIncentiveQuote } from "@/lib/incentives/context"
-import { isAddressComplete } from "@/lib/address"
+import { canPlaceOrder, leapSnapshot } from "@/lib/checkout-rules"
 import {
   addressLocation,
   locationSignature,
@@ -57,8 +57,7 @@ export default function CheckoutPage() {
   const dueToday = Math.max(0, totals.total - upfront)
   const backAfter = view?.installTotal ?? 0
   const perYear = view?.ongoingTotal ?? 0
-  const canPlace =
-    lines.length > 0 && isAddressComplete(address) && Boolean(address.name && address.email)
+  const canPlace = canPlaceOrder(lines.length, address)
 
   const placeOrder = async () => {
     if (!canPlace || placing) return
@@ -89,15 +88,7 @@ export default function CheckoutPage() {
           body: JSON.stringify({ location: shipTo, devices: deviceLines, mode: "checkout", referenceId }),
           cache: "no-store",
         })
-        const body = await res.json()
-        const settled = body?.ok ? body.view : null
-        order.leap = {
-          reference_id: referenceId,
-          connect_url: settled?.connectUrl ?? undefined,
-          installAmount: settled?.installTotal ?? backAfter,
-          ongoingAmount: settled?.ongoingTotal ?? perYear,
-          utilityName: settled?.utilityName ?? view?.utilityName ?? null,
-        }
+        order.leap = leapSnapshot(referenceId, await res.json())
       } catch {
         // Keep the reference_id regardless: without it the rebate cannot be
         // reconciled to this order later.
