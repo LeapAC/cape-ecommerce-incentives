@@ -5,7 +5,12 @@
 
 import type { ShippingAddress } from "./address"
 import type { Order } from "./order"
-import { addressLocation, locationSignature, type LookupLocation } from "./incentives/location.ts"
+import {
+  addressLocation,
+  locationSignature,
+  type LookupLocation,
+  type LookupMode,
+} from "./incentives/location.ts"
 
 /**
  * Place order needs contact details and an address the order lookup accepts:
@@ -46,4 +51,14 @@ export function leapSnapshot(referenceId: string, response: unknown): NonNullabl
 export function quoteAppliesToShipTo(shipTo: ShippingAddress, quoted: LookupLocation | null): boolean {
   const loc = addressLocation(shipTo)
   return loc !== null && quoted !== null && locationSignature(loc) === locationSignature(quoted)
+}
+
+/**
+ * Where checkout takes the lookup location from. In address mode the shipping
+ * form is the entry, so the incentives card shows only the committed line; a
+ * second form there is the duplicate shoppers saw on phones. In ZIP mode the
+ * card holds the only ZIP input on the page.
+ */
+export function checkoutLocationEntry(mode: LookupMode): "form" | "summary" {
+  return mode === "address" ? "summary" : "form"
 }

@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { useCart } from "@/lib/cart"
 import { useIncentives, useIncentiveQuote } from "@/lib/incentives/context"
-import { canPlaceOrder, leapSnapshot, quoteAppliesToShipTo } from "@/lib/checkout-rules"
+import {
+  canPlaceOrder,
+  checkoutLocationEntry,
+  leapSnapshot,
+  quoteAppliesToShipTo,
+} from "@/lib/checkout-rules"
 import {
   addressLocation,
   locationSignature,
@@ -343,7 +348,12 @@ export default function CheckoutPage() {
               {/* Leap incentives placement 3 of 3: applied. */}
               {deviceLines.length > 0 && (
                 <div className="mt-3">
-                  <IncentivePanel state={quote.state} retry={quote.retry} compact />
+                  <IncentivePanel
+                    state={quote.state}
+                    retry={quote.retry}
+                    compact
+                    locationEntry={checkoutLocationEntry(lookupMode)}
+                  />
                 </div>
               )}
 

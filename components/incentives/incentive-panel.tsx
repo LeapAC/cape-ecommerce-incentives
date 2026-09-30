@@ -1,6 +1,8 @@
 "use client"
 
+import { createContext, useContext } from "react"
 import { money } from "@/lib/format"
+import { locationLine } from "@/lib/incentives/location"
 import { useIncentives, type QuoteState } from "@/lib/incentives/context"
 import { PAYOUT_LABEL, type IncentiveView, type Payout } from "@/lib/incentives/model"
 import { AddressForm } from "./address-form"
@@ -18,35 +20,58 @@ export function IncentivePanel({
   retry,
   /** Compact drops the program breakdown, for the cart and order summary. */
   compact = false,
+  /**
+   * "form" puts the address or ZIP entry inside the card. "summary" shows only
+   * the committed location as a line, for a page that already has its own
+   * address form (checkout in address mode), so the form never appears twice.
+   */
+  locationEntry = "form",
 }: {
   state: QuoteState
   retry: () => void
   compact?: boolean
+  locationEntry?: LocationEntry
 }) {
   return (
-    <section className="card px-4 py-3.5" aria-live="polite">
-      <header className="flex items-center gap-2">
-        <Bolt className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--sun)" }} />
-        <h3 className="label">Rebates and VPP</h3>
-        {state.status === "ready" && state.view.utilityName && (
-          <span className="label-sm text-muted ml-auto truncate">
-            via {state.view.utilityName}
-          </span>
-        )}
-      </header>
+    <EntryContext.Provider value={locationEntry}>
+      <section className="card px-4 py-3.5" aria-live="polite">
+        <header className="flex items-center gap-2">
+          <Bolt className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--sun)" }} />
+          <h3 className="label">Rebates and VPP</h3>
+          {state.status === "ready" && state.view.utilityName && (
+            <span className="label-sm text-muted ml-auto truncate">
+              via {state.view.utilityName}
+            </span>
+          )}
+        </header>
 
-      <div className="mt-3">
-        {state.status === "idle" && <Teaser />}
-        {state.status === "loading" && <Loading locality={state.locality} />}
-        {state.status === "error" && <ErrorState message={state.message} retry={retry} />}
-        {state.status === "ready" &&
-          (state.view.hasOffer ? (
-            <Offer view={state.view} compact={compact} />
-          ) : (
-            <NoPrograms view={state.view} />
-          ))}
-      </div>
-    </section>
+        <div className="mt-3">
+          {state.status === "idle" && <Teaser />}
+          {state.status === "loading" && <Loading locality={state.locality} />}
+          {state.status === "error" && <ErrorState message={state.message} retry={retry} />}
+          {state.status === "ready" &&
+            (state.view.hasOffer ? (
+              <Offer view={state.view} compact={compact} />
+            ) : (
+              <NoPrograms view={state.view} />
+            ))}
+        </div>
+      </section>
+    </EntryContext.Provider>
+  )
+}
+
+type LocationEntry = "form" | "summary"
+const EntryContext = createContext<LocationEntry>("form")
+
+/** The card's location control: the entry form, or just the committed line. */
+function LocationSlot() {
+  const entry = useContext(EntryContext)
+  const { location } = useIncentives()
+  if (entry === "form") return <AddressForm />
+  if (!location) return null
+  return (
+    <p className="text-ink-soft truncate text-[0.8125rem]">{locationLine(location)}</p>
   )
 }
 
@@ -61,7 +86,7 @@ function Teaser() {
         {lookupMode === "zip" ? "ZIP" : "address"} to see what you qualify for: programs are set by
         the utility that serves you.
       </p>
-      <AddressForm />
+      <LocationSlot />
     </div>
   )
 }
@@ -100,7 +125,7 @@ function ErrorState({ message, retry }: { message: string; retry: () => void }) 
       <button type="button" onClick={retry} className="btn btn-ghost btn-sm justify-self-start">
         Try again
       </button>
-      <AddressForm />
+      <LocationSlot />
     </div>
   )
 }
@@ -117,7 +142,7 @@ function NoPrograms({ view }: { view: IncentiveView }) {
       </p>
 
       <Unavailable view={view} />
-      <AddressForm />
+      <LocationSlot />
     </div>
   )
 }
@@ -196,7 +221,7 @@ function Offer({ view, compact }: { view: IncentiveView; compact: boolean }) {
         are estimates for this address and final amounts depend on each program&rsquo;s own review.
       </p>
 
-      <AddressForm />
+      <LocationSlot />
     </div>
   )
 }

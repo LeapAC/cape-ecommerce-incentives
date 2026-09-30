@@ -1,6 +1,11 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { canPlaceOrder, leapSnapshot, quoteAppliesToShipTo } from "../lib/checkout-rules.ts"
+import {
+  canPlaceOrder,
+  checkoutLocationEntry,
+  leapSnapshot,
+  quoteAppliesToShipTo,
+} from "../lib/checkout-rules.ts"
 import { addressLocation, zipLocation } from "../lib/incentives/location.ts"
 
 const SHOPPER = {
@@ -62,4 +67,9 @@ test("a ZIP quote, an edited address, or no quote never reaches the summary", ()
   assert.equal(quoteAppliesToShipTo({ ...SHOPPER, address_line_1: "56 Trinity Ave SW" }, addressLocation(SHOPPER)), false)
   assert.equal(quoteAppliesToShipTo({ ...SHOPPER, zip_code: "303" }, addressLocation(SHOPPER)), false)
   assert.equal(quoteAppliesToShipTo(SHOPPER, null), false)
+})
+
+test("checkout shows one location entry: the shipping form in address mode", () => {
+  assert.equal(checkoutLocationEntry("address"), "summary")
+  assert.equal(checkoutLocationEntry("zip"), "form")
 })
