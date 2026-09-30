@@ -48,6 +48,7 @@ declare global {
 }
 
 let loading: Promise<PlacesLibrary> | null = null
+const SCRIPT_ID = "cape-google-maps"
 
 /** Loads the Maps JS API once per page, then the places library. */
 export function loadPlaces(): Promise<PlacesLibrary> {
@@ -56,13 +57,20 @@ export function loadPlaces(): Promise<PlacesLibrary> {
 
   loading = new Promise<void>((resolve, reject) => {
     if (window.google?.maps?.importLibrary) return resolve()
+    // A tag left by an earlier failed load would make Maps warn that it was
+    // included more than once, so it goes before a retry adds another.
+    document.getElementById(SCRIPT_ID)?.remove()
     window.__capeMapsReady = () => resolve()
     const script = document.createElement("script")
+    script.id = SCRIPT_ID
     script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
       MAPS_KEY,
     )}&libraries=places&loading=async&callback=__capeMapsReady`
     script.async = true
-    script.onerror = () => reject(new Error("Google Maps failed to load"))
+    script.onerror = () => {
+      script.remove()
+      reject(new Error("Google Maps failed to load"))
+    }
     document.head.appendChild(script)
   })
     .then(() => window.google!.maps!.importLibrary!("places") as Promise<PlacesLibrary>)
