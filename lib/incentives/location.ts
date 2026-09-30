@@ -77,6 +77,19 @@ export function postalFrom(a: Partial<ShippingAddress | PostalAddress>): PostalA
   }
 }
 
+/**
+ * Lay a picked Places address over the form's latest state. Only fields the
+ * pick actually filled are taken, so a unit typed into address_line_2 while
+ * the pick was resolving survives a suggestion that has no unit.
+ */
+export function mergePicked<T extends Partial<PostalAddress>>(latest: T, picked: PostalAddress): T {
+  const next = { ...latest }
+  for (const key of Object.keys(picked) as (keyof PostalAddress)[]) {
+    if (picked[key]) (next as Partial<PostalAddress>)[key] = picked[key]
+  }
+  return next
+}
+
 /** A committable address location, or null while it is still incomplete. */
 export function addressLocation(a: Partial<ShippingAddress | PostalAddress>): LookupLocation | null {
   const postal = postalFrom(a)

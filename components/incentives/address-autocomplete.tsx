@@ -64,7 +64,7 @@ export function AddressAutocomplete({
   }, [query])
 
   const pick = async (s: AddressSuggestion) => {
-    request.current++
+    const mine = ++request.current
     setOpen(false)
     setSuggestions([])
     setQuery(null)
@@ -72,6 +72,8 @@ export function AddressAutocomplete({
       const address = await resolveSuggestion(s)
       // A new session starts after every pick, per Places billing rules.
       session.current = null
+      // The shopper typed again while this resolved: their text wins.
+      if (mine !== request.current) return
       onPick(address)
     } catch {
       onChange(s.main)

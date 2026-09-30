@@ -6,6 +6,7 @@ import {
   isPostalComplete,
   isValidZip,
   locationLine,
+  mergePicked,
   postalFrom,
   type PostalAddress,
 } from "@/lib/incentives/location"
@@ -123,7 +124,7 @@ function AddressEntry({ disabled, onCommitted }: { disabled: boolean; onCommitte
           // A pick with every field commits at once. One missing a part (no
           // street number, say) fills the form so the shopper can finish it.
           if (commitAddress(picked)) onCommitted()
-          else setDraft(picked)
+          else setDraft((d) => mergePicked(d, picked))
         }}
         disabled={disabled}
         aria-label="Street address"

@@ -9,6 +9,7 @@ import { canPlaceOrder, leapSnapshot, quoteAppliesToShipTo } from "@/lib/checkou
 import {
   addressLocation,
   locationSignature,
+  mergePicked,
   postalFrom,
   type LookupLocation,
 } from "@/lib/incentives/location"
@@ -31,8 +32,16 @@ import { ArrowRight, Check, Minus, Plus } from "@/components/icons"
 
 export default function CheckoutPage() {
   const { lines, subtotal, setQuantity, clear, hydrated } = useCart()
-  const { address, setAddress, setField, addressReady, lookupMode, location, commitAddress } =
-    useIncentives()
+  const {
+    address,
+    mergeAddress,
+    currentAddress,
+    setField,
+    addressReady,
+    lookupMode,
+    location,
+    commitAddress,
+  } = useIncentives()
   const router = useRouter()
   const [placing, setPlacing] = useState(false)
 
@@ -166,10 +175,13 @@ export default function CheckoutPage() {
                       value={address.address_line_1}
                       onChange={(v) => setField("address_line_1", v)}
                       onPick={(picked) => {
+                        // Resolved after a round trip, so merge into the latest
+                        // form state rather than the `address` this render saw.
+                        const merged = mergePicked(currentAddress(), picked)
                         // A picked suggestion is a committed address in address
                         // mode. In ZIP mode it only fills the shipping form.
-                        if (lookupMode !== "address" || !commitAddress(picked)) {
-                          setAddress({ ...address, ...picked })
+                        if (lookupMode !== "address" || !commitAddress(merged)) {
+                          mergeAddress(merged)
                         }
                       }}
                       autoComplete="address-line1"

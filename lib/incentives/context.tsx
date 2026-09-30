@@ -39,6 +39,10 @@ interface IncentivesApi {
   /** The shipping address as typed. A draft: editing it never runs a lookup. */
   address: ShippingAddress
   setAddress: (a: ShippingAddress) => void
+  /** Merge fields into the latest address, for callbacks that ran an await. */
+  mergeAddress: (patch: Partial<ShippingAddress>) => void
+  /** The latest address, not the one captured when a callback was created. */
+  currentAddress: () => ShippingAddress
   setField: (field: keyof ShippingAddress, value: string) => void
   addressReady: boolean
   addressComplete: boolean
@@ -121,7 +125,8 @@ function readCommitted(): Committed {
 }
 
 export function IncentivesProvider({ children }: { children: React.ReactNode }) {
-  const { address, setAddress, setField, hydrated: addressHydrated } = useStoredAddress()
+  const { address, setAddress, setField, mergeAddress, currentAddress, hydrated: addressHydrated } =
+    useStoredAddress()
   const cache = useRef(new Map<string, IncentiveView>()).current
   const lastLocation = useRef<string | null>(null)
 
@@ -152,12 +157,12 @@ export function IncentivesProvider({ children }: { children: React.ReactNode }) 
       const loc = addressLocation(a)
       if (!loc) return false
       setCommitted((c) => ({ ...c, address: loc }))
-      // The committed address is also where the order ships.
-      const postal = postalFrom(a)
-      setAddress({ ...address, ...postal })
+      // The committed address is also where the order ships. Merged into the
+      // latest state, so name and email typed during a pick are kept.
+      mergeAddress(postalFrom(a))
       return true
     },
-    [address, setAddress, setCommitted],
+    [mergeAddress, setCommitted],
   )
 
   const commitZip = useCallback((zip: string) => {
@@ -187,6 +192,8 @@ export function IncentivesProvider({ children }: { children: React.ReactNode }) 
     () => ({
       address,
       setAddress,
+      mergeAddress,
+      currentAddress,
       setField,
       addressReady: addressHydrated && lookupHydrated,
       addressComplete: isAddressComplete(address),
@@ -199,6 +206,8 @@ export function IncentivesProvider({ children }: { children: React.ReactNode }) 
     [
       address,
       setAddress,
+      mergeAddress,
+      currentAddress,
       setField,
       addressHydrated,
       lookupHydrated,

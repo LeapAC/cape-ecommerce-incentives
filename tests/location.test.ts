@@ -5,6 +5,7 @@ import {
   isValidZip,
   locationLabel,
   locationSignature,
+  mergePicked,
   parseLookupMode,
   parseStoredLocation,
   resolveLookupMode,
@@ -85,4 +86,25 @@ test("a ZIP lookup sends only the ZIP and country to Leap", () => {
 test("labels name where the lookup ran", () => {
   assert.equal(locationLabel(addressLocation(ATLANTA)), "Atlanta, GA")
   assert.equal(locationLabel(zipLocation("80202")), "ZIP 80202")
+})
+
+test("a pick merges into the latest form state instead of replacing it", () => {
+  const latest = {
+    name: "Typed During Pick",
+    email: "typed@example.com",
+    address_line_1: "55 Tri",
+    address_line_2: "Unit 4",
+    city: "",
+    state: "",
+    zip_code: "",
+    country_code: "US",
+  }
+  const merged = mergePicked(latest, { ...ATLANTA, address_line_2: "" })
+  assert.equal(merged.name, "Typed During Pick")
+  assert.equal(merged.email, "typed@example.com")
+  assert.equal(merged.address_line_1, "55 Trinity Ave SW")
+  assert.equal(merged.address_line_2, "Unit 4")
+  assert.equal(merged.city, "Atlanta")
+  assert.equal(merged.zip_code, "30303")
+  assert.equal(latest.address_line_1, "55 Tri", "input is not mutated")
 })
