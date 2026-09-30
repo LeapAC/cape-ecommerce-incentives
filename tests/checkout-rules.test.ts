@@ -1,6 +1,7 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { canPlaceOrder, leapSnapshot } from "../lib/checkout-rules.ts"
+import { canPlaceOrder, leapSnapshot, quoteAppliesToShipTo } from "../lib/checkout-rules.ts"
+import { addressLocation, zipLocation } from "../lib/incentives/location.ts"
 
 const SHOPPER = {
   name: "Demo Shopper",
@@ -47,4 +48,18 @@ test("a settled order lookup records its own amounts and link", () => {
     },
   )
   assert.equal(leapSnapshot("cape-CP-ABCDEF", { ok: true, view: { connectUrl: "" } }).connect_url, undefined)
+})
+
+test("the summary uses a quote only when it ran for the ship-to address", () => {
+  const quoted = addressLocation(SHOPPER)
+  assert.ok(quoteAppliesToShipTo(SHOPPER, quoted))
+  // Name and email are not part of the location.
+  assert.ok(quoteAppliesToShipTo({ ...SHOPPER, name: "Someone Else" }, quoted))
+})
+
+test("a ZIP quote, an edited address, or no quote never reaches the summary", () => {
+  assert.equal(quoteAppliesToShipTo(SHOPPER, zipLocation("30303")), false)
+  assert.equal(quoteAppliesToShipTo({ ...SHOPPER, address_line_1: "56 Trinity Ave SW" }, addressLocation(SHOPPER)), false)
+  assert.equal(quoteAppliesToShipTo({ ...SHOPPER, zip_code: "303" }, addressLocation(SHOPPER)), false)
+  assert.equal(quoteAppliesToShipTo(SHOPPER, null), false)
 })

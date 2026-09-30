@@ -5,7 +5,7 @@
 
 import type { ShippingAddress } from "./address"
 import type { Order } from "./order"
-import { addressLocation } from "./incentives/location.ts"
+import { addressLocation, locationSignature, type LookupLocation } from "./incentives/location.ts"
 
 /**
  * Place order needs contact details and an address the order lookup accepts:
@@ -35,4 +35,15 @@ export function leapSnapshot(referenceId: string, response: unknown): NonNullabl
     ongoingAmount: num(view.ongoingTotal),
     utilityName: typeof view.utilityName === "string" ? view.utilityName : null,
   }
+}
+
+/**
+ * Whether the browsing quote was run for the address this order ships to.
+ * Only then may it touch the order summary: the instant rebate, "Due today",
+ * and the After purchase block. A ZIP-mode quote never qualifies, and neither
+ * does one for an address the shopper has edited since committing it.
+ */
+export function quoteAppliesToShipTo(shipTo: ShippingAddress, quoted: LookupLocation | null): boolean {
+  const loc = addressLocation(shipTo)
+  return loc !== null && quoted !== null && locationSignature(loc) === locationSignature(quoted)
 }

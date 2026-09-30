@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { useCart } from "@/lib/cart"
 import { useIncentives, useIncentiveQuote } from "@/lib/incentives/context"
-import { canPlaceOrder, leapSnapshot } from "@/lib/checkout-rules"
+import { canPlaceOrder, leapSnapshot, quoteAppliesToShipTo } from "@/lib/checkout-rules"
 import {
   addressLocation,
   locationSignature,
@@ -51,12 +51,15 @@ export default function CheckoutPage() {
     locationSignature(draftLocation) !== locationSignature(location)
   const quote = useIncentiveQuote(deviceLines)
   const view = quote.state.status === "ready" ? quote.state.view : null
+  // The summary's money must describe the address being ordered. The card
+  // below still shows the committed estimate, labelled with where it ran.
+  const summaryView = view && quoteAppliesToShipTo(address, location) ? view : null
 
   const totals = totalsFor(subtotal)
-  const upfront = view?.upfrontTotal ?? 0
+  const upfront = summaryView?.upfrontTotal ?? 0
   const dueToday = Math.max(0, totals.total - upfront)
-  const backAfter = view?.installTotal ?? 0
-  const perYear = view?.ongoingTotal ?? 0
+  const backAfter = summaryView?.installTotal ?? 0
+  const perYear = summaryView?.ongoingTotal ?? 0
   const canPlace = canPlaceOrder(lines.length, address)
 
   const placeOrder = async () => {
@@ -340,7 +343,7 @@ export default function CheckoutPage() {
                     )}
                   </dl>
                   <p className="text-muted mt-2 text-[0.6875rem] leading-snug">
-                    Paid by {view?.utilityName ?? "your utility"} after your charger is installed,
+                    Paid by {summaryView?.utilityName ?? "your utility"} after your charger is installed,
                     not deducted from today&rsquo;s total. You file the claim through Leap.
                   </p>
                 </div>
