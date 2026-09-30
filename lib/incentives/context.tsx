@@ -39,10 +39,8 @@ interface IncentivesApi {
   /** The shipping address as typed. A draft: editing it never runs a lookup. */
   address: ShippingAddress
   setAddress: (a: ShippingAddress) => void
-  /** Merge fields into the latest address, for callbacks that ran an await. */
+  /** Merge fields into the latest address rather than a captured copy. */
   mergeAddress: (patch: Partial<ShippingAddress>) => void
-  /** The latest address, not the one captured when a callback was created. */
-  currentAddress: () => ShippingAddress
   setField: (field: keyof ShippingAddress, value: string) => void
   addressReady: boolean
   addressComplete: boolean
@@ -50,7 +48,7 @@ interface IncentivesApi {
   lookupMode: LookupMode
   /** The committed location for the current mode. Lookups key on this alone. */
   location: LookupLocation | null
-  /** Commit a full address: a picked suggestion or a submitted form. */
+  /** Commit a full address from a submitted form. */
   commitAddress: (a: Partial<PostalAddress>) => boolean
   /** Commit a ZIP in ZIP mode. */
   commitZip: (zip: string) => boolean
@@ -126,8 +124,7 @@ function readCommitted(): Committed {
 }
 
 export function IncentivesProvider({ children }: { children: React.ReactNode }) {
-  const { address, setAddress, setField, mergeAddress, currentAddress, hydrated: addressHydrated } =
-    useStoredAddress()
+  const { address, setAddress, setField, mergeAddress, hydrated: addressHydrated } = useStoredAddress()
   const cache = useRef(new Map<string, IncentiveView>()).current
   const lastLocation = useRef<string | null>(null)
 
@@ -159,7 +156,7 @@ export function IncentivesProvider({ children }: { children: React.ReactNode }) 
       if (!loc) return false
       setCommitted((c) => ({ ...c, address: loc }))
       // The committed address is also where the order ships. Merged into the
-      // latest state, so name and email typed during a pick are kept.
+      // latest state, so contact fields are never overwritten.
       mergeAddress(postalFrom(a))
       return true
     },
@@ -194,7 +191,6 @@ export function IncentivesProvider({ children }: { children: React.ReactNode }) 
       address,
       setAddress,
       mergeAddress,
-      currentAddress,
       setField,
       addressReady: addressHydrated && lookupHydrated,
       addressComplete: isAddressComplete(address),
@@ -208,7 +204,6 @@ export function IncentivesProvider({ children }: { children: React.ReactNode }) 
       address,
       setAddress,
       mergeAddress,
-      currentAddress,
       setField,
       addressHydrated,
       lookupHydrated,

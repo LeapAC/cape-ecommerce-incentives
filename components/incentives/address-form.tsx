@@ -7,12 +7,10 @@ import {
   isPostalComplete,
   isValidZip,
   locationLine,
-  mergePicked,
   postalFrom,
   type PostalAddress,
 } from "@/lib/incentives/location"
 import { Pencil } from "@/components/icons"
-import { AddressAutocomplete } from "./address-autocomplete"
 
 
 
@@ -22,8 +20,9 @@ import { AddressAutocomplete } from "./address-autocomplete"
  * Programs are set by the utility serving the address. In address mode Leap
  * geocodes the full address; in ZIP mode it resolves the ZIP centroid.
  *
- * Nothing typed here runs a lookup. The form keeps its own draft and commits on
- * a picked suggestion or a submit, so a half-typed street never reaches Leap.
+ * Nothing typed here runs a lookup. The form keeps its own draft and commits
+ * only on a submit (the button or Enter), so a half-typed street never reaches
+ * Leap.
  * Once committed the form collapses to one line with a Change control.
  */
 export function AddressForm() {
@@ -111,20 +110,23 @@ function AddressEntry({ disabled, onCommitted }: { disabled: boolean; onCommitte
         if (commitAddress(draft)) onCommitted()
       }}
     >
-      <AddressAutocomplete
+      <input
         className="field field-sm"
         placeholder="Street address"
         autoComplete="address-line1"
         value={draft.address_line_1}
-        onChange={(v) => set("address_line_1", v)}
-        onPick={(picked) => {
-          // A pick with every field commits at once. One missing a part (no
-          // street number, say) fills the form so the shopper can finish it.
-          if (commitAddress(picked)) onCommitted()
-          else setDraft((d) => mergePicked(d, picked))
-        }}
+        onChange={(e) => set("address_line_1", e.target.value)}
         disabled={disabled}
         aria-label="Street address"
+      />
+      <input
+        className="field field-sm"
+        placeholder="Apartment, unit, suite (optional)"
+        autoComplete="address-line2"
+        value={draft.address_line_2}
+        onChange={(e) => set("address_line_2", e.target.value)}
+        disabled={disabled}
+        aria-label="Apartment, unit, suite"
       />
       <div className="grid grid-cols-[1.5fr_0.7fr_0.9fr] gap-2">
         <input

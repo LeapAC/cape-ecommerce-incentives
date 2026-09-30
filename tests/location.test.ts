@@ -6,7 +6,6 @@ import {
   locationLabel,
   locationSignature,
   lookupParamAction,
-  mergePicked,
   parseLookupMode,
   parseStoredLocation,
   resolveLookupMode,
@@ -88,47 +87,6 @@ test("labels name where the lookup ran", () => {
   assert.equal(locationLabel(addressLocation(ATLANTA)), "Atlanta, GA")
   assert.equal(locationLabel(zipLocation("80202")), "ZIP 80202")
 })
-
-const PREVIOUS = {
-  name: "Typed During Pick",
-  email: "typed@example.com",
-  address_line_1: "1437 Bannock St",
-  address_line_2: "Unit 4",
-  city: "Denver",
-  state: "CO",
-  zip_code: "80202",
-  country_code: "US",
-}
-
-test("a pick keeps the latest contact fields and replaces the address", () => {
-  const merged = mergePicked(PREVIOUS, ATLANTA)
-  assert.equal(merged.name, "Typed During Pick")
-  assert.equal(merged.email, "typed@example.com")
-  assert.deepEqual(postalOf(merged), ATLANTA)
-  assert.equal(PREVIOUS.address_line_1, "1437 Bannock St", "input is not mutated")
-})
-
-test("a pick with no unit clears the previous address's unit", () => {
-  const merged = mergePicked(PREVIOUS, { ...ATLANTA, address_line_2: "" })
-  assert.equal(merged.address_line_2, "")
-})
-
-test("a pick with no ZIP clears the previous ZIP instead of keeping it", () => {
-  const merged = mergePicked(PREVIOUS, { ...ATLANTA, zip_code: "" })
-  assert.equal(merged.zip_code, "")
-  assert.equal(addressLocation(merged), null, "an address with no ZIP cannot commit")
-})
-
-function postalOf(a: typeof PREVIOUS) {
-  return {
-    address_line_1: a.address_line_1,
-    address_line_2: a.address_line_2,
-    city: a.city,
-    state: a.state,
-    zip_code: a.zip_code,
-    country_code: a.country_code,
-  }
-}
 
 test("only ?lookup=default clears the saved mode; a typo leaves it alone", () => {
   assert.deepEqual(lookupParamAction(null), { kind: "none" })

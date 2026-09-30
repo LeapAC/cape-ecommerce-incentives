@@ -53,8 +53,7 @@ export function formatAddress(a: ShippingAddress): string {
 }
 
 /**
- * States, DC, and the inhabited territories. Places reports Puerto Rico and
- * Guam as their own countries, so the form must offer them as states.
+ * States, DC, and the inhabited territories, which Leap addresses as states.
  */
 export const US_TERRITORIES = ["PR", "GU", "VI", "AS", "MP"] as const
 

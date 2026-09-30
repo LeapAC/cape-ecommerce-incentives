@@ -5,7 +5,7 @@
  * `node --test` can load this file directly.
  *
  * A lookup never keys on what the shopper is typing. It keys on a committed
- * location: a picked autocomplete suggestion, or a form the shopper submitted.
+ * location: a form the shopper submitted, with the button or Enter.
  * Typing into a field changes a draft, and a draft never reaches Leap.
  */
 
@@ -92,24 +92,6 @@ export function postalFrom(a: Partial<ShippingAddress | PostalAddress>): PostalA
     state: a.state?.trim().toUpperCase() ?? "",
     zip_code: a.zip_code?.trim() ?? "",
     country_code: (a.country_code?.trim() || "US").toUpperCase(),
-  }
-}
-
-/**
- * Lay a picked Places address over the form's latest state. Every address
- * field comes from the pick, empty ones included, so a unit or ZIP from the
- * previous address never survives a new pick. Contact fields (name, email)
- * are left as the shopper has them now, not as a captured copy.
- */
-export function mergePicked<T extends Partial<PostalAddress>>(latest: T, picked: PostalAddress): T {
-  return {
-    ...latest,
-    address_line_1: picked.address_line_1,
-    address_line_2: picked.address_line_2,
-    city: picked.city,
-    state: picked.state,
-    zip_code: picked.zip_code,
-    country_code: picked.country_code,
   }
 }
 

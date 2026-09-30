@@ -17,7 +17,7 @@ The store runs at `http://localhost:3000`. Pass `-p 3311` to move it.
 npm test
 ```
 
-Runs the unit tests in `tests/` with Node's built-in test runner. They cover the lookup location model, the Google Places field mapping, and the display rules in the incentives model.
+Runs the unit tests in `tests/` with Node's built-in test runner. They cover the lookup location model, the checkout guard and order rules, device parsing, and the display rules in the incentives model.
 
 ## Environment
 
@@ -27,7 +27,6 @@ Copy `.env.example` to `.env.local` and fill in the values. `LEAP_API_KEY` is a 
 |---|---|---|
 | `LEAP_API_KEY` | Server | Partner key for the Leap lookup |
 | `LEAP_API_BASE_URL` | Server | Leap API host |
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Browser, optional | Turns on Google Places address suggestions. A browser key: restrict it by HTTP referrer and to the Places API (New) |
 | `NEXT_PUBLIC_LOOKUP_MODE` | Browser, optional | `address` (default) or `zip`. The default lookup mode before any per-browser override |
 
 The two `NEXT_PUBLIC_` values are inlined at build time, so changing them needs a redeploy. The per-browser toggle below does not.
@@ -49,8 +48,6 @@ Next.js 16 App Router, React 19, TypeScript, Tailwind CSS v4. No UI library, no 
 | `lib/catalog.ts` | Products, categories, and per-product incentive attributes |
 | `lib/incentives/location.ts` | Committed lookup location, lookup mode, and their validators |
 | `lib/incentives/context.tsx` | Shipping address draft, committed location, and the lookup hook |
-| `lib/google-places.ts` | Loads the Maps JavaScript API and fetches Places suggestions |
-| `lib/places-address.ts` | Maps Places address components onto the Leap address fields |
 | `components/incentives/` | The incentives card, the cart line, and the address and ZIP entry |
 | `lib/cart.tsx` | Cart context, `localStorage` backed |
 | `lib/address.ts` | Address types and validators, safe on server and client |
@@ -137,9 +134,9 @@ Every surface reads the same committed location:
 
 ### Address entry commits, it never follows keystrokes
 
-A lookup keys on a committed location, never on a field being typed. A location is committed when the shopper picks a Places suggestion, or submits the form with Enter or **Check incentives**. Editing the checkout address after that leaves the preview where it was until the shopper commits again, and the button re-enables to say so.
+A lookup keys on a committed location, never on a field being typed. Address entry is manual, with separate fields for street, unit, city, state, and ZIP. A location is committed only when the shopper submits the form with Enter or **Check incentives**. Editing the checkout address after that leaves the preview where it was until the shopper commits again, and the button re-enables to say so.
 
-With `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` set, the street field suggests US addresses from Google Places, and picking one fills every field and commits. Without it, the form is manual and submit is the only way to commit.
+The site loads no Google Maps or Places API, so a public demo cannot run up a bill.
 
 ### ZIP mode
 

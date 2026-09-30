@@ -24,8 +24,7 @@ export function IncentivePanel({
   compact?: boolean
 }) {
   return (
-    // Visible overflow so the address suggestion list can extend past the card.
-    <section className="card px-4 py-3.5" style={{ overflow: "visible" }} aria-live="polite">
+    <section className="card px-4 py-3.5" aria-live="polite">
       <header className="flex items-center gap-2">
         <Bolt className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--sun)" }} />
         <h3 className="label">Rebates and VPP</h3>

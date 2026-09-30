@@ -9,12 +9,10 @@ import { canPlaceOrder, leapSnapshot, quoteAppliesToShipTo } from "@/lib/checkou
 import {
   addressLocation,
   locationSignature,
-  mergePicked,
   postalFrom,
   type LookupLocation,
 } from "@/lib/incentives/location"
 import { IncentivePanel } from "@/components/incentives/incentive-panel"
-import { AddressAutocomplete } from "@/components/incentives/address-autocomplete"
 import { US_STATES as STATES } from "@/lib/address"
 import { useCartDeviceLines } from "@/components/incentives/cart-incentives"
 import { money, moneyExact } from "@/lib/format"
@@ -34,8 +32,6 @@ export default function CheckoutPage() {
   const { lines, subtotal, setQuantity, clear, hydrated } = useCart()
   const {
     address,
-    mergeAddress,
-    currentAddress,
     setField,
     addressReady,
     lookupMode,
@@ -49,8 +45,8 @@ export default function CheckoutPage() {
   // deciding. The durable lookup happens once, at order placement.
   //
   // Typing the shipping address edits a draft and never runs a lookup. In
-  // address mode the preview moves only when the shopper picks a suggestion or
-  // submits the address; in ZIP mode it follows the ZIP in the incentives card.
+  // address mode the preview moves only when the shopper submits the address
+  // (the button or Enter); in ZIP mode it follows the ZIP in the incentives card.
   const deviceLines = useCartDeviceLines()
   const draftLocation = addressLocation(address)
   const canCheckAddress =
@@ -165,30 +161,13 @@ export default function CheckoutPage() {
                   if (canCheckAddress) commitAddress(address)
                 }}
               >
-                <div>
-                  <label className="label-sm text-muted" htmlFor="street-address">
-                    Street address
-                  </label>
-                  <div className="mt-2">
-                    <AddressAutocomplete
-                      id="street-address"
-                      value={address.address_line_1}
-                      onChange={(v) => setField("address_line_1", v)}
-                      onPick={(picked) => {
-                        // Resolved after a round trip, so merge into the latest
-                        // form state rather than the `address` this render saw.
-                        const merged = mergePicked(currentAddress(), picked)
-                        // A picked suggestion is a committed address in address
-                        // mode. In ZIP mode it only fills the shipping form.
-                        if (lookupMode !== "address" || !commitAddress(merged)) {
-                          mergeAddress(merged)
-                        }
-                      }}
-                      autoComplete="address-line1"
-                      disabled={!addressReady}
-                    />
-                  </div>
-                </div>
+                <Field
+                  label="Street address"
+                  value={address.address_line_1}
+                  onChange={(v) => setField("address_line_1", v)}
+                  autoComplete="address-line1"
+                  disabled={!addressReady}
+                />
                 <Field
                   label="Apartment, unit, suite"
                   optional
@@ -271,7 +250,7 @@ export default function CheckoutPage() {
 
           {/* ── summary ───────────────────────────────────────────────── */}
           <aside className="min-w-0 lg:sticky lg:top-28 lg:self-start">
-            <div className="card p-6" style={{ overflow: "visible" }}>
+            <div className="card p-6">
               <h2 className="display text-[1.8rem]">Order summary</h2>
 
               <ul className="mt-6 divide-y">
