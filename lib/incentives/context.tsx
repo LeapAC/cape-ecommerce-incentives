@@ -13,6 +13,7 @@ import { isAddressComplete, type ShippingAddress } from "@/lib/address"
 import { ADDRESS_STORAGE_KEY, useStoredAddress } from "@/lib/use-address"
 import { deviceSignature, type DeviceLine } from "./devices"
 import {
+  DEFAULT_LOOKUP_MODE,
   LOOKUP_MODE_PARAM,
   LOOKUP_MODE_STORAGE_KEY,
   addressLocation,
@@ -44,7 +45,7 @@ interface IncentivesApi {
   setField: (field: keyof ShippingAddress, value: string) => void
   addressReady: boolean
   addressComplete: boolean
-  /** How the site asks for a location: full address (default) or ZIP only. */
+  /** How the site asks for a location: ZIP only (default) or full address. */
   lookupMode: LookupMode
   /** The committed location for the current mode. Lookups key on this alone. */
   location: LookupLocation | null
@@ -87,7 +88,7 @@ function writeStorage(key: string, value: string | null) {
  * The hidden demo toggle. `?lookup=zip` or `?lookup=address` pins the mode in
  * this browser, `?lookup=default` clears it, and the param is then stripped so
  * an audience never sees it. Otherwise the stored choice, then
- * NEXT_PUBLIC_LOOKUP_MODE, then full address.
+ * NEXT_PUBLIC_LOOKUP_MODE, then ZIP.
  */
 function readLookupMode(): LookupMode {
   try {
@@ -129,7 +130,7 @@ export function IncentivesProvider({ children }: { children: React.ReactNode }) 
   const lastLocation = useRef<string | null>(null)
 
   const [lookup, setLookup] = useState<{ mode: LookupMode; committed: Committed; hydrated: boolean }>({
-    mode: "address",
+    mode: DEFAULT_LOOKUP_MODE,
     committed: { address: null, zip: null },
     hydrated: false,
   })

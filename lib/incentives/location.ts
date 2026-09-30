@@ -11,7 +11,9 @@
 
 import type { ShippingAddress } from "../address"
 
-/** How the site asks for a location. Full address is the default. */
+/** How the site asks for a location. ZIP is the default. */
+export const DEFAULT_LOOKUP_MODE: LookupMode = "zip"
+
 export type LookupMode = "address" | "zip"
 
 export interface PostalAddress {
@@ -60,12 +62,12 @@ export function lookupParamAction(param: string | null): LookupParamAction {
   return { kind: "ignore" }
 }
 
-/** Resolve the effective mode: stored override, then env default, then address. */
+/** Resolve the effective mode: stored override, then env default, then ZIP. */
 export function resolveLookupMode(
   stored: string | null | undefined,
   envDefault: string | null | undefined,
 ): LookupMode {
-  return parseLookupMode(stored) ?? parseLookupMode(envDefault) ?? "address"
+  return parseLookupMode(stored) ?? parseLookupMode(envDefault) ?? DEFAULT_LOOKUP_MODE
 }
 
 export function isValidZip(zip: string | null | undefined): boolean {

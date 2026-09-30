@@ -27,9 +27,9 @@ Copy `.env.example` to `.env.local` and fill in the values. `LEAP_API_KEY` is a 
 |---|---|---|
 | `LEAP_API_KEY` | Server | Partner key for the Leap lookup |
 | `LEAP_API_BASE_URL` | Server | Leap API host |
-| `NEXT_PUBLIC_LOOKUP_MODE` | Browser, optional | `address` (default) or `zip`. The default lookup mode before any per-browser override |
+| `NEXT_PUBLIC_LOOKUP_MODE` | Browser, optional | `zip` (default) or `address`. The default lookup mode before any per-browser override |
 
-The two `NEXT_PUBLIC_` values are inlined at build time, so changing them needs a redeploy. The per-browser toggle below does not.
+`NEXT_PUBLIC_LOOKUP_MODE` is inlined at build time, so changing it needs a redeploy. The per-browser toggle below does not.
 
 ## Stack
 
@@ -140,7 +140,7 @@ The site loads no Google Maps or Places API, so a public demo cannot run up a bi
 
 ### ZIP mode
 
-Full address is the default. ZIP mode asks for one five-digit ZIP and sends Leap only `zip_code` and `country_code`, which production resolves to the ZIP centroid. Programs that depend on the exact street can differ from a full-address lookup.
+ZIP is the default. ZIP mode asks for one five-digit ZIP and sends Leap only `zip_code` and `country_code`, which production resolves to the ZIP centroid. Programs that depend on the exact street can differ from a full-address lookup.
 
 Switch a browser without a redeploy:
 
@@ -148,7 +148,7 @@ Switch a browser without a redeploy:
 |---|---|
 | `/?lookup=zip` | ZIP mode in this browser, saved in `localStorage` |
 | `/?lookup=address` | Full-address mode in this browser |
-| `/?lookup=default` | Clears the override and falls back to `NEXT_PUBLIC_LOOKUP_MODE` |
+| `/?lookup=default` | Clears the override and falls back to `NEXT_PUBLIC_LOOKUP_MODE`, else ZIP |
 
 The param works on any page and is removed from the address bar once read. Each mode keeps its own committed location, so switching back restores the last address or ZIP.
 
@@ -160,6 +160,7 @@ These addresses exercise the different states against live programs:
 |---|---|
 | 1437 Bannock St, Denver, CO 80202 | $550 after install plus $200/yr across three Xcel programs |
 | 55 Trinity Ave SW, Atlanta, GA 30303 | $200 after install across two Georgia Power programs |
-| ZIP 30303, in ZIP mode | The same two Georgia Power programs |
+| ZIP 30303 | The same two Georgia Power programs |
+| ZIP 80202 | The same three Xcel programs as the Denver address |
 | 1201 J St, Sacramento, CA 95814 | No offer, with the not-on-the-approved-list reason |
 | 1 City Hall Sq, Boston, MA 02201 | No programs in NSTAR territory |

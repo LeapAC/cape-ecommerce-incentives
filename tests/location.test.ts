@@ -31,11 +31,12 @@ test("the lookup param accepts zip and address, ignores anything else", () => {
   assert.equal(parseLookupMode(null), null)
 })
 
-test("mode resolves stored override, then env default, then full address", () => {
+test("mode resolves stored override, then env default, then ZIP", () => {
+  assert.equal(resolveLookupMode("address", "zip"), "address")
   assert.equal(resolveLookupMode("zip", "address"), "zip")
-  assert.equal(resolveLookupMode(null, "zip"), "zip")
-  assert.equal(resolveLookupMode("junk", "junk"), "address")
-  assert.equal(resolveLookupMode(undefined, undefined), "address")
+  assert.equal(resolveLookupMode(null, "address"), "address")
+  assert.equal(resolveLookupMode("junk", "junk"), "zip")
+  assert.equal(resolveLookupMode(undefined, undefined), "zip")
 })
 
 test("a ZIP is exactly five digits", () => {
