@@ -3,6 +3,7 @@ import { LeapApiError, lookupIncentives } from "@/lib/leap/client"
 import { parseStoredLocation, toLeapAddress, type LookupLocation } from "@/lib/incentives/location"
 import { emptyView, toIncentiveView, type IncentiveView } from "@/lib/incentives/model"
 import { toCustomerDevices, type DeviceLine } from "@/lib/incentives/devices"
+import { checkCheckoutRequest } from "@/lib/incentives/checkout-guard"
 
 /**
  * The only thing the browser talks to. The partner key lives here and on the
@@ -70,10 +71,23 @@ export async function POST(request: Request): Promise<NextResponse<QuoteResponse
   }
 
   const checkout = body.mode === "checkout"
-  // An application is pinned to its address, so it is only ever created from a
-  // full shipping address, never from a ZIP centroid.
-  if (checkout && location.kind !== "address") {
-    return fail("An order lookup needs the full shipping address.", 400, false)
+  let orderReference: string | null = null
+  if (checkout) {
+    // Creating an application writes to production, so only cape's own Place
+    // order may ask for it: same origin, and a reference checkout minted.
+    const check = checkCheckoutRequest({
+      origin: request.headers.get("origin"),
+      host: request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
+      referenceId: body.referenceId,
+    })
+    if (!check.ok) return fail(check.message, 400, false)
+    orderReference = check.referenceId
+
+    // An application is pinned to its address, so it is only ever created
+    // from a full shipping address, never from a ZIP centroid.
+    if (location.kind !== "address") {
+      return fail("An order lookup needs the full shipping address.", 400, false)
+    }
   }
 
   const devices = toCustomerDevices(body.devices ?? [])
@@ -84,10 +98,7 @@ export async function POST(request: Request): Promise<NextResponse<QuoteResponse
     return ok(emptyView(body.referenceId ?? "none"))
   }
 
-  const referenceId =
-    checkout && body.referenceId
-      ? body.referenceId
-      : `cape-preview-${crypto.randomUUID()}`
+  const referenceId = orderReference ?? `cape-preview-${crypto.randomUUID()}`
 
   try {
     const result = await lookupIncentives({
@@ -95,7 +106,7 @@ export async function POST(request: Request): Promise<NextResponse<QuoteResponse
       address: toLeapAddress(location),
       customer_devices: devices,
       customer_classification: "RESIDENTIAL",
-      create_application: checkout,
+      create_application: orderReference !== null,
     })
 
     return ok(toIncentiveView(result))
