@@ -39,24 +39,31 @@ const NO_TERRITORY =
 const BAD_ADDRESS =
   "We could not locate that address. Check the street number and city, then try again."
 
+/**
+ * Time spent waiting on Leap, so a slow quote can be split into our hop and
+ * theirs from the browser's network panel. A duration only, never a payload.
+ */
+function headersFor(leapMs?: number): Record<string, string> {
+  const headers: Record<string, string> = { "Cache-Control": "no-store" }
+  if (leapMs !== undefined) headers["Server-Timing"] = `leap;dur=${leapMs.toFixed(1)}`
+  return headers
+}
+
 function fail(
   message: string,
   status: number,
   retryable: boolean,
   retryAfter?: number,
+  leapMs?: number,
 ): NextResponse<QuoteResponse> {
   return NextResponse.json(
     { ok: false, error: { message, retryable, retryAfter } },
-    { status, headers: { "Cache-Control": "no-store" } },
+    { status, headers: headersFor(leapMs) },
   )
 }
 
 function ok(view: IncentiveView, leapMs?: number): NextResponse<QuoteResponse> {
-  const headers: Record<string, string> = { "Cache-Control": "no-store" }
-  // Time spent waiting on Leap, so a slow quote can be split into our hop and
-  // theirs from the browser's network panel. A duration only, never a payload.
-  if (leapMs !== undefined) headers["Server-Timing"] = `leap;dur=${leapMs.toFixed(1)}`
-  return NextResponse.json({ ok: true, view }, { headers })
+  return NextResponse.json({ ok: true, view }, { headers: headersFor(leapMs) })
 }
 
 export async function POST(request: Request): Promise<NextResponse<QuoteResponse>> {
@@ -125,18 +132,19 @@ export async function POST(request: Request): Promise<NextResponse<QuoteResponse
 
     return ok(toIncentiveView(result), performance.now() - started)
   } catch (err) {
+    const leapMs = performance.now() - started
     if (!(err instanceof LeapApiError)) {
       console.error("[incentives] unexpected failure", err)
-      return fail("Could not check incentives right now.", 500, true)
+      return fail("Could not check incentives right now.", 500, true, undefined, leapMs)
     }
 
     // Address-coverage outcomes become a successful empty result. The browser
     // then has one less branch and cannot render a coverage gap as a failure.
     if (err.status === 404) {
-      return ok(emptyView(referenceId, NO_TERRITORY))
+      return ok(emptyView(referenceId, NO_TERRITORY), leapMs)
     }
     if (err.status === 422 && /geocod/i.test(err.code + err.message)) {
-      return ok(emptyView(referenceId, BAD_ADDRESS))
+      return ok(emptyView(referenceId, BAD_ADDRESS), leapMs)
     }
 
     // Everything else is logged with its opaque code and given a safe message.
@@ -146,17 +154,17 @@ export async function POST(request: Request): Promise<NextResponse<QuoteResponse
 
     if (err.status === 401 || err.status === 403) {
       // A configuration problem on our side. Never surfaced to the shopper.
-      return fail("Incentive lookups are unavailable right now.", 503, false)
+      return fail("Incentive lookups are unavailable right now.", 503, false, undefined, leapMs)
     }
     if (err.status === 422 || err.status === 400) {
       // Our request was wrong, most likely a bad device mapping. Retrying the
       // same input cannot help.
-      return fail("We could not check incentives for this item.", 422, false)
+      return fail("We could not check incentives for this item.", 422, false, undefined, leapMs)
     }
     if (err.status === 429) {
-      return fail("Too many lookups just now. Try again shortly.", 429, true, err.retryAfter)
+      return fail("Too many lookups just now. Try again shortly.", 429, true, err.retryAfter, leapMs)
     }
 
-    return fail("Could not reach the incentives service.", 502, true)
+    return fail("Could not reach the incentives service.", 502, true, undefined, leapMs)
   }
 }

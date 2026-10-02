@@ -126,7 +126,7 @@ A quote takes one round trip to Leap, so the client adds as little as possible o
 - A committed ZIP or address sends its lookup at once. Only a device change at a location the surface already asked about waits 300 ms, so a run of quantity clicks becomes one lookup.
 - Surfaces asking for the same quote at the same moment share one request. After **Add to cart**, the product card and the cart drawer read one response.
 - Results are cached for the page session, keyed by location and device set, and dropped when the location changes.
-- The route sends a `Server-Timing: leap;dur=…` header on success, so the network panel splits our hop from Leap's.
+- The route sends a `Server-Timing: leap;dur=…` header whenever it called Leap, so the network panel splits our hop from Leap's.
 - Functions run in `pdx1` (Portland), set in `vercel.json`. `api.leap.energy` resolves to AWS `us-west-2`, so the route is a few milliseconds from Leap. Measured on 2 October 2026, the upstream call took 155 ms warm in `pdx1` against 225 ms in `iad1`, and 227 ms against 517 ms on a fresh connection.
 
 ### Device mapping
@@ -151,7 +151,7 @@ The site loads no Google Maps or Places API, so a public demo cannot run up a bi
 
 ### Every page load starts empty
 
-The site never stores an entered ZIP or address. A reload, or a new tab, shows an empty entry, so a demo can show the entry from scratch each time. Within one page session the location carries across the product page, the cart, and checkout. On load the site removes the `cape-lookup-location` and `cape-address` keys an earlier build wrote. The lookup mode below is a setting, not a location, and stays saved.
+The site never stores the ZIP or address entered for a lookup, or the checkout form. A reload, or a new tab, shows an empty entry, so a demo can show the entry from scratch each time. Within one page session the location carries across the product page, the cart, and checkout. On load the site removes the `cape-lookup-location` and `cape-address` keys an earlier build wrote. The lookup mode below is a setting, not a location, and stays saved. A placed order is still kept in `localStorage` for the confirmation page, including its shipping address.
 
 ### ZIP mode
 

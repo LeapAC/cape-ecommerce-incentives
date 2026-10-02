@@ -253,7 +253,9 @@ export function useIncentiveQuote(
 
   const locSig = locationSignature(location)
   const devSig = deviceSignature(lines)
-  const signature = `${locSig}::${devSig}::${mode}`
+  // referenceId is part of the key so two callers with different references
+  // never share a request or a cached result.
+  const signature = `${locSig}::${devSig}::${mode}::${referenceId ?? ""}`
   const hasDevices = devSig.length > 0
 
   // Serialised so the effect depends on the values, not the array identity.
@@ -308,15 +310,15 @@ export function useIncentiveQuote(
             body,
             cache: "no-store",
           })
-          const json = (await res.json()) as QuoteBody
-          if (json?.ok && json.view) cache.set(signature, json.view)
-          return json
+          return (await res.json()) as QuoteBody
         })
 
-        // A response from a superseded address must never land.
+        // A response from a superseded address must never land, in the view or
+        // in the cache: the provider may already have emptied it for a new one.
         if (cancelled || myToken !== token.current) return
 
         if (result?.ok && result.view) {
+          cache.set(signature, result.view)
           setState({ status: "ready", view: result.view })
         } else {
           setState({
