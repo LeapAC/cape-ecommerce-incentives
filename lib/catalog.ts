@@ -56,7 +56,6 @@ export interface Product {
   designator?: string
   category: CategoryId
   price: number
-  compareAt?: number
   /** A booked visit rather than a boxed item: no shipping line, no stock. */
   service?: boolean
   badge?: string
@@ -120,7 +119,6 @@ export const PRODUCTS: Product[] = [
     designator: "48",
     category: "chargers",
     price: 899,
-    compareAt: 1049,
     badge: "Most installed",
     tagline: "11.5 kW hardwired. The one most people should buy.",
     blurb:

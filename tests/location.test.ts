@@ -97,3 +97,31 @@ test("only ?lookup=default clears the saved mode; a typo leaves it alone", () =>
   assert.deepEqual(lookupParamAction("zipp"), { kind: "ignore" })
   assert.deepEqual(lookupParamAction(""), { kind: "ignore" })
 })
+
+test("loading clears a remembered location but keeps the lookup mode", async () => {
+  const { clearStoredLocation, LOOKUP_MODE_STORAGE_KEY, STALE_LOCATION_KEYS } = await import(
+    "../lib/incentives/location.ts"
+  )
+  const store = new Map<string, string>([
+    ["cape-lookup-location", JSON.stringify({ zip: { kind: "zip", zip_code: "30303" } })],
+    ["cape-address", JSON.stringify(ATLANTA)],
+    [LOOKUP_MODE_STORAGE_KEY, "address"],
+    ["cape-cart", "[]"],
+  ])
+  clearStoredLocation({ removeItem: (k: string) => void store.delete(k) })
+
+  for (const key of STALE_LOCATION_KEYS) assert.equal(store.has(key), false)
+  assert.equal(store.get(LOOKUP_MODE_STORAGE_KEY), "address")
+  assert.equal(store.get("cape-cart"), "[]")
+})
+
+test("clearing a location survives blocked storage", async () => {
+  const { clearStoredLocation } = await import("../lib/incentives/location.ts")
+  assert.doesNotThrow(() =>
+    clearStoredLocation({
+      removeItem: () => {
+        throw new Error("SecurityError")
+      },
+    }),
+  )
+})

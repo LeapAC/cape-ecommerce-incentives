@@ -33,7 +33,7 @@ Copy `.env.example` to `.env.local` and fill in the values. `LEAP_API_KEY` is a 
 
 ## Stack
 
-Next.js 16 App Router, React 19, TypeScript, Tailwind CSS v4. No UI library, no state library, no animation library. Cart and address state live in React context backed by `localStorage`.
+Next.js 16 App Router, React 19, TypeScript, Tailwind CSS v4. No UI library, no state library, no animation library. Cart state lives in React context backed by `localStorage`. The entered ZIP or address lives in React context for the page session only, so a reload starts empty.
 
 ## Layout
 
@@ -51,7 +51,8 @@ Next.js 16 App Router, React 19, TypeScript, Tailwind CSS v4. No UI library, no 
 | `components/incentives/` | The incentives card, the cart line, and the address and ZIP entry |
 | `lib/cart.tsx` | Cart context, `localStorage` backed |
 | `lib/address.ts` | Address types and validators, safe on server and client |
-| `lib/use-address.ts` | Address persistence hook |
+| `lib/use-address.ts` | Shipping address draft, held for the page session |
+| `lib/incentives/request.ts` | Lookup debounce rule and in-flight request sharing |
 | `lib/order.ts` | Order record, totals, and order storage |
 | `lib/theme.tsx` | Coast switch |
 | `lib/water-top.tsx` | Tells the header whether the page opens on a dark band |
@@ -118,6 +119,16 @@ The customer files their own claim. The confirmation page shows the `connect_url
 
 A failed lookup never blocks the page, the cart, or the order.
 
+### Keeping lookups fast
+
+A quote takes one round trip to Leap, so the client adds as little as possible on top:
+
+- A committed ZIP or address sends its lookup at once. Only a device change at a location the surface already asked about waits 300 ms, so a run of quantity clicks becomes one lookup.
+- Surfaces asking for the same quote at the same moment share one request. After **Add to cart**, the product card and the cart drawer read one response.
+- Results are cached for the page session, keyed by location and device set, and dropped when the location changes.
+- The route sends a `Server-Timing: leap;dur=…` header whenever it called Leap, so the network panel splits our hop from Leap's.
+- Functions run in `pdx1` (Portland), set in `vercel.json`. `api.leap.energy` resolves to AWS `us-west-2`, so the route is a few milliseconds from Leap. Measured on 2 October 2026, the upstream call took 155 ms warm in `pdx1` against 225 ms in `iad1`, and 227 ms against 517 ms on a fresh connection.
+
 ### Device mapping
 
 `lib/catalog.ts` carries `leapDeviceId` plus a readable `deviceLabel` on each charger. Ids come from the production device catalog (`GET /beta/incentives/devices/search`) and are **minted per environment**, so they will 422 against staging. A product with no mapping is skipped rather than looked up, which is the right outcome for accessories and install services.
@@ -138,6 +149,10 @@ A lookup keys on a committed location, never on a field being typed. Address ent
 
 The site loads no Google Maps or Places API, so a public demo cannot run up a bill.
 
+### Every page load starts empty
+
+The site never stores the ZIP or address entered for a lookup, or the checkout form. A reload, or a new tab, shows an empty entry, so a demo can show the entry from scratch each time. Within one page session the location carries across the product page, the cart, and checkout. On load the site removes the `cape-lookup-location` and `cape-address` keys an earlier build wrote. The lookup mode below is a setting, not a location, and stays saved. A placed order is still kept in `localStorage` for the confirmation page, including its shipping address.
+
 ### ZIP mode
 
 ZIP is the default. ZIP mode asks for one five-digit ZIP and sends Leap only `zip_code` and `country_code`, which production resolves to the ZIP centroid. Programs that depend on the exact street can differ from a full-address lookup.
@@ -150,7 +165,7 @@ Switch a browser without a redeploy:
 | `/?lookup=address` | Full-address mode in this browser |
 | `/?lookup=default` | Clears the override and falls back to `NEXT_PUBLIC_LOOKUP_MODE`, else ZIP |
 
-The param works on any page and is removed from the address bar once read. Each mode keeps its own committed location, so switching back restores the last address or ZIP.
+The param works on any page and is removed from the address bar once read. Within a page session each mode keeps its own committed location.
 
 ### Checking it works
 

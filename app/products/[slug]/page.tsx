@@ -79,21 +79,8 @@ export default async function ProductPage({ params }: PageProps<"/products/[slug
 
           <p className="text-ink-soft mt-6 text-lg leading-relaxed">{product.blurb}</p>
 
-          <div className="mt-8 flex flex-wrap items-baseline gap-3">
+          <div className="mt-8">
             <span className="tabular display text-[2.6rem]">{money(product.price)}</span>
-            {product.compareAt && (
-              <>
-                <span className="tabular text-muted text-lg line-through">
-                  {money(product.compareAt)}
-                </span>
-                <span
-                  className="label-sm rounded-full px-3 py-1.5"
-                  style={{ background: "var(--coral)", color: "var(--shell)" }}
-                >
-                  Save {money(product.compareAt - product.price)}
-                </span>
-              </>
-            )}
           </div>
 
           <div className="mt-7">

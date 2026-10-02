@@ -28,15 +28,6 @@ export function ProductCard({ product }: { product: Product }) {
           </span>
         )}
 
-        {product.compareAt && (
-          <span
-            className="label-sm absolute top-4 right-4 z-20 rounded-full px-3 py-1.5"
-            style={{ background: "var(--coral)", color: "var(--shell)" }}
-          >
-            Save {money(product.compareAt - product.price)}
-          </span>
-        )}
-
         <div className="absolute inset-x-4 bottom-4 z-20 flex translate-y-1.5 justify-end opacity-0 transition-all duration-500 group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:translate-y-0 group-hover:opacity-100">
           <QuickAdd product={product} />
         </div>
