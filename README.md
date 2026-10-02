@@ -127,6 +127,7 @@ A quote takes one round trip to Leap, so the client adds as little as possible o
 - Surfaces asking for the same quote at the same moment share one request. After **Add to cart**, the product card and the cart drawer read one response.
 - Results are cached for the page session, keyed by location and device set, and dropped when the location changes.
 - The route sends a `Server-Timing: leap;dur=…` header on success, so the network panel splits our hop from Leap's.
+- Functions run in `pdx1` (Portland), set in `vercel.json`. `api.leap.energy` resolves to AWS `us-west-2`, so the route is a few milliseconds from Leap. Measured on 2 October 2026, the upstream call took 155 ms warm in `pdx1` against 225 ms in `iad1`, and 227 ms against 517 ms on a fresh connection.
 
 ### Device mapping
 
