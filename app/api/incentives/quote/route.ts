@@ -51,8 +51,12 @@ function fail(
   )
 }
 
-function ok(view: IncentiveView): NextResponse<QuoteResponse> {
-  return NextResponse.json({ ok: true, view }, { headers: { "Cache-Control": "no-store" } })
+function ok(view: IncentiveView, leapMs?: number): NextResponse<QuoteResponse> {
+  const headers: Record<string, string> = { "Cache-Control": "no-store" }
+  // Time spent waiting on Leap, so a slow quote can be split into our hop and
+  // theirs from the browser's network panel. A duration only, never a payload.
+  if (leapMs !== undefined) headers["Server-Timing"] = `leap;dur=${leapMs.toFixed(1)}`
+  return NextResponse.json({ ok: true, view }, { headers })
 }
 
 export async function POST(request: Request): Promise<NextResponse<QuoteResponse>> {
@@ -109,6 +113,7 @@ export async function POST(request: Request): Promise<NextResponse<QuoteResponse
 
   const referenceId = orderReference ?? `cape-preview-${crypto.randomUUID()}`
 
+  const started = performance.now()
   try {
     const result = await lookupIncentives({
       reference_id: referenceId,
@@ -118,7 +123,7 @@ export async function POST(request: Request): Promise<NextResponse<QuoteResponse
       create_application: orderReference !== null,
     })
 
-    return ok(toIncentiveView(result))
+    return ok(toIncentiveView(result), performance.now() - started)
   } catch (err) {
     if (!(err instanceof LeapApiError)) {
       console.error("[incentives] unexpected failure", err)

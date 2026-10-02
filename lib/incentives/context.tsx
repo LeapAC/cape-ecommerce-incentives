@@ -10,17 +10,17 @@ import {
   useState,
 } from "react"
 import { isAddressComplete, type ShippingAddress } from "@/lib/address"
-import { ADDRESS_STORAGE_KEY, useStoredAddress } from "@/lib/use-address"
+import { useSessionAddress } from "@/lib/use-address"
 import { deviceSignature, type DeviceLine } from "./devices"
 import {
   DEFAULT_LOOKUP_MODE,
   LOOKUP_MODE_PARAM,
   LOOKUP_MODE_STORAGE_KEY,
   addressLocation,
+  clearStoredLocation,
   locationLabel,
   locationSignature,
   lookupParamAction,
-  parseStoredLocation,
   postalFrom,
   resolveLookupMode,
   zipLocation,
@@ -29,6 +29,7 @@ import {
   type PostalAddress,
 } from "./location"
 import type { IncentiveView } from "./model"
+import { lookupDelay, sharedRequest } from "./request"
 
 export type QuoteState =
   | { status: "idle" }
@@ -56,11 +57,18 @@ interface IncentivesApi {
   /** Session cache, keyed by location + device set. Program data changes, so it
    *  never outlives the tab and is emptied whenever the location moves. */
   cache: Map<string, IncentiveView>
+  /** One in-flight request per signature, shared by every surface asking. */
+  inflight: Map<string, Promise<QuoteBody>>
 }
 
-const IncentivesContext = createContext<IncentivesApi | null>(null)
+/** The quote route's response body, as the browser reads it. */
+type QuoteBody = {
+  ok?: boolean
+  view?: IncentiveView
+  error?: { message?: string; retryable?: boolean }
+} | null
 
-const LOCATION_STORAGE_KEY = "cape-lookup-location"
+const IncentivesContext = createContext<IncentivesApi | null>(null)
 
 interface Committed {
   address: LookupLocation | null
@@ -107,26 +115,12 @@ function readLookupMode(): LookupMode {
   return resolveLookupMode(readStorage(LOOKUP_MODE_STORAGE_KEY), process.env.NEXT_PUBLIC_LOOKUP_MODE)
 }
 
-function readCommitted(): Committed {
-  const none: Committed = { address: null, zip: null }
-  try {
-    const raw = readStorage(LOCATION_STORAGE_KEY)
-    if (raw !== null) {
-      const parsed = JSON.parse(raw) as Partial<Record<keyof Committed, unknown>>
-      return { address: parseStoredLocation(parsed?.address), zip: parseStoredLocation(parsed?.zip) }
-    }
-    // Sessions from before commit-on-submit kept one live address. Adopt it
-    // once as committed, so an address someone already entered keeps working.
-    const legacy = readStorage(ADDRESS_STORAGE_KEY)
-    return legacy ? { ...none, address: addressLocation(JSON.parse(legacy)) } : none
-  } catch {
-    return none
-  }
-}
-
 export function IncentivesProvider({ children }: { children: React.ReactNode }) {
-  const { address, setAddress, setField, mergeAddress, hydrated: addressHydrated } = useStoredAddress()
-  const cache = useRef(new Map<string, IncentiveView>()).current
+  const { address, setAddress, setField, mergeAddress, hydrated: addressHydrated } = useSessionAddress()
+  // Stable for the provider's life. Held in state rather than a ref so render
+  // never reads ref.current.
+  const [cache] = useState(() => new Map<string, IncentiveView>())
+  const [inflight] = useState(() => new Map<string, Promise<QuoteBody>>())
   const lastLocation = useRef<string | null>(null)
 
   const [lookup, setLookup] = useState<{ mode: LookupMode; committed: Committed; hydrated: boolean }>({
@@ -141,15 +135,18 @@ export function IncentivesProvider({ children }: { children: React.ReactNode }) 
     [],
   )
 
-  // Hydrate once from storage, in a single update.
+  // Hydrate the mode once. The committed location is never read back: every
+  // page load starts with an empty entry, and anything an older build stored is
+  // removed here. Within one page session it lives in this state and carries
+  // across client navigation.
   useEffect(() => {
-    setLookup({ mode: readLookupMode(), committed: readCommitted(), hydrated: true })
+    try {
+      clearStoredLocation(localStorage)
+    } catch {
+      /* storage blocked: nothing to clear */
+    }
+    setLookup({ mode: readLookupMode(), committed: { address: null, zip: null }, hydrated: true })
   }, [])
-
-  useEffect(() => {
-    if (!lookupHydrated) return
-    writeStorage(LOCATION_STORAGE_KEY, JSON.stringify(committed))
-  }, [committed, lookupHydrated])
 
   const commitAddress = useCallback(
     (a: Partial<PostalAddress>) => {
@@ -200,6 +197,7 @@ export function IncentivesProvider({ children }: { children: React.ReactNode }) 
       commitAddress,
       commitZip,
       cache,
+      inflight,
     }),
     [
       address,
@@ -213,6 +211,7 @@ export function IncentivesProvider({ children }: { children: React.ReactNode }) 
       commitAddress,
       commitZip,
       cache,
+      inflight,
     ],
   )
 
@@ -226,12 +225,6 @@ export function useIncentives(): IncentivesApi {
 }
 
 /**
- * Coalesces rapid quantity clicks into one lookup. Address entry is already
- * gated on commit, so this is not what stops per-keystroke lookups.
- */
-const DEBOUNCE_MS = 300
-
-/**
  * Runs a lookup for a device set at the committed location.
  *
  * Re-runs on a signature of committed location plus device set, so a quantity
@@ -243,7 +236,7 @@ export function useIncentiveQuote(
   lines: DeviceLine[],
   options: { mode?: "preview" | "checkout"; referenceId?: string; enabled?: boolean } = {},
 ): { state: QuoteState; retry: () => void } {
-  const { location, addressReady, cache } = useIncentives()
+  const { location, addressReady, cache, inflight } = useIncentives()
   const { mode = "preview", referenceId, enabled = true } = options
 
   const [state, setState] = useState<QuoteState>({ status: "idle" })
@@ -255,6 +248,8 @@ export function useIncentiveQuote(
    * ever resolves. Each consumer renders its own view, so each guards its own.
    */
   const token = useRef(0)
+  /** The location this hook last sent a lookup for, to decide on debouncing. */
+  const lastSent = useRef<string | null>(null)
 
   const locSig = locationSignature(location)
   const devSig = deviceSignature(lines)
@@ -285,61 +280,64 @@ export function useIncentiveQuote(
     }
 
     const myToken = ++token.current
-    const controller = new AbortController()
     let cancelled = false
 
     setState({ status: "loading", locality: locationLabel(location) })
 
+    const body = JSON.stringify({
+      location,
+      devices: JSON.parse(linesJson).map(([slug, deviceId, quantity]: [string, string, number]) => ({
+        slug,
+        deviceId,
+        quantity,
+      })),
+      mode,
+      referenceId,
+    })
+
     const timer = setTimeout(async () => {
+      lastSent.current = locSig
       try {
-        const res = await fetch("/api/incentives/quote", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            location,
-            devices: JSON.parse(linesJson).map(
-              ([slug, deviceId, quantity]: [string, string, number]) => ({
-                slug,
-                deviceId,
-                quantity,
-              }),
-            ),
-            mode,
-            referenceId,
-          }),
-          signal: controller.signal,
-          cache: "no-store",
+        // Shared, never aborted by one consumer: another surface may be
+        // waiting on the same request. A superseded response is dropped by the
+        // token check below instead. The route bounds the upstream call at 10s.
+        const result = await sharedRequest(inflight, signature, async () => {
+          const res = await fetch("/api/incentives/quote", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body,
+            cache: "no-store",
+          })
+          const json = (await res.json()) as QuoteBody
+          if (json?.ok && json.view) cache.set(signature, json.view)
+          return json
         })
 
-        const body = await res.json()
         // A response from a superseded address must never land.
         if (cancelled || myToken !== token.current) return
 
-        if (body?.ok) {
-          cache.set(signature, body.view)
-          setState({ status: "ready", view: body.view })
+        if (result?.ok && result.view) {
+          setState({ status: "ready", view: result.view })
         } else {
           setState({
             status: "error",
-            message: body?.error?.message ?? "Could not check incentives.",
-            retryable: Boolean(body?.error?.retryable),
+            message: result?.error?.message ?? "Could not check incentives.",
+            retryable: Boolean(result?.error?.retryable),
           })
         }
-      } catch (err) {
-        if (cancelled || (err as { name?: string })?.name === "AbortError") return
-        if (myToken !== token.current) return
+      } catch {
+        if (cancelled || myToken !== token.current) return
         setState({
           status: "error",
           message: "Could not reach the incentives service.",
           retryable: true,
         })
       }
-    }, DEBOUNCE_MS)
+    }, lookupDelay(lastSent.current, locSig))
 
     return () => {
       cancelled = true
       clearTimeout(timer)
-      controller.abort()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature, linesJson, enabled, addressReady, hasDevices, nonce])

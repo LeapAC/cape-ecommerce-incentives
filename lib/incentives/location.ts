@@ -33,6 +33,27 @@ export const LOOKUP_MODE_STORAGE_KEY = "cape-lookup-mode"
 export const LOOKUP_MODE_PARAM = "lookup"
 
 /**
+ * Keys earlier builds used to remember the entered location: the committed ZIP
+ * or address, and the shipping address draft. The site no longer writes them,
+ * so every page load starts with an empty entry for a demo. They are removed on
+ * load so a browser that visited before starts empty too.
+ *
+ * The lookup mode is a setting, not a location, and is deliberately kept.
+ */
+export const STALE_LOCATION_KEYS = ["cape-lookup-location", "cape-address"] as const
+
+/** Remove every remembered location. Never touches the lookup mode or the cart. */
+export function clearStoredLocation(storage: Pick<Storage, "removeItem">): void {
+  for (const key of STALE_LOCATION_KEYS) {
+    try {
+      storage.removeItem(key)
+    } catch {
+      /* private mode or blocked storage: nothing was stored either */
+    }
+  }
+}
+
+/**
  * `?lookup=zip` or `?lookup=address` sets the mode for this browser;
  * `?lookup=default` clears the override and falls back to the env default.
  * Anything else is ignored rather than guessed at.

@@ -37,7 +37,7 @@ export function IncentivePanel({
       <section className="card px-4 py-3.5" aria-live="polite">
         <header className="flex items-center gap-2">
           <Bolt className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--sun)" }} />
-          <h3 className="label">Rebates and VPP</h3>
+          <h3 className="label">Incentives</h3>
           {state.status === "ready" && state.view.utilityName && (
             <span className="label-sm text-muted ml-auto truncate">
               via {state.view.utilityName}
@@ -82,7 +82,7 @@ function Teaser() {
   return (
     <div className="grid grid-cols-1 gap-3">
       <p className="text-ink-soft text-[0.8125rem] leading-snug">
-        Rebates and VPP earnings are available on this charger. Add your{" "}
+        Incentives are available on this charger. Add your{" "}
         {lookupMode === "zip" ? "ZIP" : "address"} to see what you qualify for: programs are set by
         the utility that serves you.
       </p>
@@ -263,10 +263,11 @@ function Unavailable({ view }: { view: IncentiveView }) {
   const swappable = view.unavailable.some((u) => u.deviceSpecific)
 
   return (
+    // Mostly programs from neighbouring utilities that a ZIP or address search
+    // also returns, so the summary names them neutrally and stays on one line.
     <Disclosure
-      summary={`${view.unavailable.length} program${
-        view.unavailable.length === 1 ? "" : "s"
-      } this charger doesn't qualify for`}
+      summary={`${view.unavailable.length} other program${view.unavailable.length === 1 ? "" : "s"}`}
+      oneLine
     >
       <ul className="grid grid-cols-1 gap-2">
         {view.unavailable.map((u) => (
@@ -286,12 +287,21 @@ function Unavailable({ view }: { view: IncentiveView }) {
   )
 }
 
-function Disclosure({ summary, children }: { summary: string; children: React.ReactNode }) {
+function Disclosure({
+  summary,
+  oneLine = false,
+  children,
+}: {
+  summary: string
+  /** Never wrap the summary: truncate rather than break onto a second line. */
+  oneLine?: boolean
+  children: React.ReactNode
+}) {
   return (
     <details className="group border-t pt-3">
       <summary className="label-sm text-muted hover:text-ink flex cursor-pointer list-none items-center gap-2 transition-colors">
-        <ChevronDown className="h-3 w-3 transition-transform duration-300 group-open:rotate-180" />
-        {summary}
+        <ChevronDown className="h-3 w-3 shrink-0 transition-transform duration-300 group-open:rotate-180" />
+        <span className={oneLine ? "min-w-0 truncate whitespace-nowrap" : undefined}>{summary}</span>
       </summary>
       <div className="mt-2.5">{children}</div>
     </details>

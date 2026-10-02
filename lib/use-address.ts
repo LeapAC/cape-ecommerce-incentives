@@ -1,48 +1,36 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useState, useSyncExternalStore } from "react"
 import { EMPTY_ADDRESS, type ShippingAddress } from "./address"
 
-export const ADDRESS_STORAGE_KEY = "cape-address"
+const subscribeNever = () => () => {}
 
 /**
- * Address persisted client-side for the session, so one entered on a product
- * page prefills checkout.
+ * The shipping address draft, held in memory for this page session only.
+ *
+ * It carries across client navigation, so an address entered on a product page
+ * prefills checkout. It is never written to storage: a reload starts empty, so
+ * a demo can show the entry from scratch every time.
+ *
+ * `hydrated` flips after mount, so fields stay disabled until React owns them
+ * and a value typed before hydration is never lost.
  */
-export function useStoredAddress() {
+export function useSessionAddress() {
   const [address, setAddressState] = useState<ShippingAddress>(EMPTY_ADDRESS)
-  const [hydrated, setHydrated] = useState(false)
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(ADDRESS_STORAGE_KEY)
-      if (raw) setAddressState({ ...EMPTY_ADDRESS, ...(JSON.parse(raw) as ShippingAddress) })
-    } catch {
-      /* fall back to empty */
-    }
-    setHydrated(true)
-  }, [])
-
-  const persist = (next: ShippingAddress) => {
-    try {
-      localStorage.setItem(ADDRESS_STORAGE_KEY, JSON.stringify(next))
-    } catch {
-      /* nothing useful to do here */
-    }
-    return next
-  }
+  // False on the server and during hydration, true once the client owns the tree.
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false)
 
   const setAddress = useCallback((next: ShippingAddress) => {
-    setAddressState(persist(next))
+    setAddressState(next)
   }, [])
 
   const setField = useCallback((field: keyof ShippingAddress, value: string) => {
-    setAddressState((prev) => persist({ ...prev, [field]: value }))
+    setAddressState((prev) => ({ ...prev, [field]: value }))
   }, [])
 
   /** Merge fields into the latest address, never a captured copy. */
   const mergeAddress = useCallback((patch: Partial<ShippingAddress>) => {
-    setAddressState((prev) => persist({ ...prev, ...patch }))
+    setAddressState((prev) => ({ ...prev, ...patch }))
   }, [])
 
   return { address, setAddress, setField, mergeAddress, hydrated }
